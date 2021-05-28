@@ -133,7 +133,10 @@ public:  // Solvers related to gsMatrix
 
 public:
 
-    gsMatrix() { }
+    gsMatrix() 
+    {
+//         gsInfo << "gsMatrix<T>::gsMatrix()\n";
+    }
 
     gsMatrix(const Base& a) ;
 
@@ -466,7 +469,7 @@ public:
         for (index_t i = 0; i!=this->rows(); ++i)
         {
             for (index_t j = 0; j!=this->cols(); ++j)
-                os<< ( 0 == this->coeff(i,j) ? "\u00B7" : "x");
+                os<< ( 0 == this->coeff(i,j) ? "\u00B7" : this->coeff(i,j));            // "x"
             os<<"  "<<(this->row(i).array()!=0).count()<<"\n";
         }
         return os.str();

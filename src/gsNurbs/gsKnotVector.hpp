@@ -256,7 +256,7 @@ typename gsKnotVector<T>::reverse_smart_iterator gsKnotVector<T>::rsend()   cons
 
 
 template<typename T>
-gsKnotVector<T>::gsKnotVector( knotContainer knots, short_t degree)
+gsKnotVector<T>::gsKnotVector( knotContainer knots, int degree)
 {
     knots.swap(m_repKnots);
     rebuildMultSum();
@@ -329,7 +329,7 @@ void gsKnotVector<T>::remove( uiterator uit, mult_t mult )
     if( toRemove ==  knotMult )
         upos = m_multSum.erase( upos );
 
-    std::transform(upos, m_multSum.end(), upos, GS_BIND2ND(std::minus<mult_t>(),toRemove));
+    std::transform(upos, m_multSum.end(), upos, std::bind2nd(std::minus<mult_t>(),toRemove));
 }
 
 template<typename T>
@@ -353,7 +353,7 @@ void gsKnotVector<T>::erase(const mult_t first, const mult_t last)
     const mult_t numKnots = last - first;
     *fpos = m_multSum.back() - numKnots;
     lpos  = m_multSum.erase(fpos + 1, lpos);
-    std::transform(lpos, m_multSum.end(), lpos, GS_BIND2ND(std::minus<mult_t>(),numKnots));
+    std::transform(lpos, m_multSum.end(), lpos, std::bind2nd(std::minus<mult_t>(),numKnots));
 }
 
 template<typename T>
@@ -366,7 +366,7 @@ void gsKnotVector<T>::trimLeft(const mult_t numKnots)
     nonConstMultIterator upos =
         std::upper_bound(m_multSum.begin(), m_multSum.end(), numKnots);
     upos = m_multSum.erase(m_multSum.begin(), upos);
-    std::transform(upos, m_multSum.end(), upos, GS_BIND2ND(std::minus<mult_t>(),numKnots));
+    std::transform(upos, m_multSum.end(), upos, std::bind2nd(std::minus<mult_t>(),numKnots));
 }
 
 template<typename T>
@@ -564,8 +564,17 @@ gsKnotVector<T>::gsKnotVector( T first,
                                unsigned interior,
                                mult_t mult_ends,
                                mult_t mult_interior,
-                               short_t degree)
+                               int degree)
 {
+//     gsInfo << "gsKnotVector<T>::gsKnotVector()\n";
+    
+//     gsInfo << "interior: " << interior << "\n";
+//     gsInfo << "mult_ends: " << mult_ends << "\n";
+//     gsInfo << "mult_interior: " << mult_interior << "\n";
+//     gsInfo << "degree: " << degree << "\n";
+//     
+//     gsInfo << "\n";
+    
     initUniform( first, last, interior, mult_ends, mult_interior, degree );
 }
 
@@ -615,8 +624,16 @@ void gsKnotVector<T>::initUniform( T first,
                                    unsigned interior,
                                    unsigned mult_ends,
                                    unsigned mult_interior,
-                                   short_t degree)
+                                   int degree)
 {
+    
+//     gsInfo << "gsKnotVector<T>::initUniform()\n";
+    
+//     gsInfo << "interior: " << interior << "\n";
+//     gsInfo << "mult_ends: " << mult_ends << "\n";
+//     gsInfo << "mult_interior: " << mult_interior << "\n";
+//     gsInfo << "degree: " << degree << "\n";
+    
     m_deg = (degree == - 1 ? mult_ends-1 : degree);
 
     const size_t nKnots = 2 * mult_ends + interior*mult_interior;
@@ -859,14 +876,14 @@ void gsKnotVector<T>::reduceMultiplicity(const mult_t i, bool boundary)
 }
 
 template<typename T>
-void gsKnotVector<T>::degreeElevate(const short_t & i)
+void gsKnotVector<T>::degreeElevate(int const & i)
 {
     increaseMultiplicity(i,true);
     m_deg += i;
 }
 
 template<typename T>
-void gsKnotVector<T>::degreeReduce(const short_t & i)
+void gsKnotVector<T>::degreeReduce(int const & i)
 {
     reduceMultiplicity(i,true);
     m_deg -= i;
@@ -915,6 +932,8 @@ coarsen(index_t knotRemove, index_t knotSkip, mult_t mul)
 template<typename T>
 void gsKnotVector<T>::greville_into(gsMatrix<T> & result) const
 {
+//     gsInfo << "gsKnotVector<T>::greville_into()\n";
+    
     iterator itr = begin() + 1;
     result.resize(1, size()-m_deg-1 ) ;
     unsigned i = 1;
@@ -989,13 +1008,13 @@ void gsKnotVector<T>::getUniformRefinementKnots(mult_t knotsPerSpan, knotContain
 
 template< typename T>
 void gsKnotVector<T>::supportIndex_into(const mult_t& i,
-                                        gsMatrix<index_t>& result) const
+                                        gsMatrix<unsigned>& result) const
 {
     T suppBeg=*(this->begin()+i);
     T suppEnd=*(this->begin()+i+m_deg+1);
     uiterator ubeg   = this->ubegin();
     uiterator indBeg = uFind(suppBeg);
-    uiterator indEnd = std::find_if(indBeg, this->uend(), GS_BIND2ND(std::greater_equal<T>(), suppEnd));
+    uiterator indEnd = std::find_if(indBeg, this->uend(), std::bind2nd(std::greater_equal<T>(), suppEnd));
     result.resize(1,2);
     result<<indBeg-ubeg,indEnd-ubeg;
 }

@@ -38,11 +38,26 @@ namespace gismo
 template <class T>
 void transformGradients(const gsMapData<T> & md, index_t k, const gsMatrix<T>& allGrads, gsMatrix<T>& trfGradsK)
 {
+    
+    gsInfo << "gsAssembler<T>::transformGradients()\n";
+    
     GISMO_ASSERT(allGrads.rows() % md.dim.first == 0, "Invalid size of gradient matrix");
 
     const index_t numGrads = allGrads.rows() / md.dim.first;
     const gsAsConstMatrix<T> grads_k(allGrads.col(k).data(), md.dim.first, numGrads);
+    
+//     gsInfo << "  grads_" << k
+//            << ": \n"
+//            << grads_k
+//            << "\n";
+    
     trfGradsK.noalias() = md.jacobian(k).cramerInverse().transpose() * grads_k;
+    
+//     gsInfo << "  trfGradsK: \n"
+//            << trfGradsK
+//            << "\n";
+    
+    
 }
 
 template <class T>
@@ -79,19 +94,19 @@ template <class T>
 void outerNormal(const gsMapData<T> & md, index_t k, boxSide s, gsVector<T> & result)
 {
     //todo: fix and check me
-    short_t m_orientation = md.jacobian(k).determinant() >= 0 ? 1 : -1;
+    int m_orientation = md.jacobian(k).determinant() >= 0 ? 1 : -1;
 
     const T sgn = sideOrientation(s) * m_orientation; // TODO: fix me
-    const short_t dir = s.direction();
+    const int dir = s.direction();
 
     // assumes points u on boundary "s"
     result.resize(md.dim.second);
     if (md.dim.first + 1 == md.dim.second) // surface case GeoDim == 3
     {
-        const gsMatrix<T,3,1> Jk = md.jacobian(k).col(!dir);
+        const gsMatrix<T> Jk = md.jacobian(k);
         // fixme: generalize to nD
         normal(md, k, result);
-        result = result.template head<3>().normalized().cross(sgn * Jk);
+        result = result.normalized().cross(sgn * Jk.block(0, !dir, md.dim.first, 1));
 
         /*
           gsDebugVar(result.transpose()); // result 1
@@ -99,7 +114,7 @@ void outerNormal(const gsMapData<T> & md, index_t k, boxSide s, gsVector<T> & re
           Jk.col(dir) = result.normalized();
           gsMatrix<T, ParDim, md.dim.first> minor;
           T alt_sgn = sgn;
-          for (short_t i = 0; i != GeoDim; ++i) // for all components of the normal
+          for (int i = 0; i != GeoDim; ++i) // for all components of the normal
           {
           Jk.rowMinor(i, minor);
           result[i] = alt_sgn * minor.determinant();
@@ -118,7 +133,8 @@ void outerNormal(const gsMapData<T> & md, index_t k, boxSide s, gsVector<T> & re
             return;
         } // 1D case
 
-        const gsMatrix<T> Jk = md.jacobian(k);
+        const gsMatrix<T> Jk =
+            md.jacobian(k);
 
         T alt_sgn = sgn;
         typename gsMatrix<T>::FirstMinorMatrixType minor;
@@ -294,8 +310,16 @@ protected: // *** Output data members ***
 
 public:
 
-    gsAssembler() : m_options(defaultOptions())
-    { }
+    gsAssembler() : m_options(defaultOptions())            // data member is used in the constructor directly           // ***********************************************
+    { 
+        
+        gsInfo << "gsAssembler<T>::gsAssembler()\n"
+               <<"  creating m_pde_ptr, m_bases, m_options(initialized by defaultOptions() at the spot), m_system, m_ddof\n\n";  // these members can be found above
+        
+//         gsInfo << "m_options reads:\n";
+//         m_options.print(gsInfo);
+//         gsInfo << "\n";
+    }
 
     virtual ~gsAssembler()
     { }
@@ -317,6 +341,7 @@ public:
                     //note: merge with initialize(.., const gsMultiBasis<T> ,..) ?
                     const gsOptionList & opt = defaultOptions() )
     {
+        gsInfo << "   gsAssembler<T>::initialize() 0" << "\n";
         typename gsPde<T>::Ptr _pde = memory::make_shared_not_owned(&pde);
         initialize(_pde,bases,opt);
     }
@@ -328,6 +353,7 @@ public:
                     //note: merge with initialize(.., const gsMultiBasis<T> ,..) ?
                     const gsOptionList & opt = defaultOptions() )
     {
+        gsInfo << "  gsAssembler<T>::initialize() 1" << "\n";
         m_pde_ptr = pde;
         m_bases = bases;
         m_options = opt;
@@ -341,20 +367,33 @@ public:
                     const gsMultiBasis<T>    & bases,
                     const gsOptionList & opt = defaultOptions() )
     {
+        gsInfo << "  gsAssembler<T>::initialize() 2" << "\n";
         typename gsPde<T>::Ptr _pde = memory::make_shared_not_owned(&pde);
         initialize(_pde,bases,opt);
     }
 
-    void initialize(typename gsPde<T>::Ptr pde,
+    void initialize(typename gsPde<T>::Ptr pde,                                       // called by gsPoissonAssembler::gsPoissonAssembler()
                     const gsMultiBasis<T>    & bases,
                     const gsOptionList & opt = defaultOptions() )
     {
+        gsInfo << "  gsAssembler<T>::initialize() 3: initializing m_pde_ptr, m_bases, m_options by pde, bases and m_options " << "\n";
+        
+/*        gsInfo << "  m_system.matrix():\n"
+               << m_system.matrix()
+               << "\n";
+        gsInfo << "  m_system.rhs():\n"
+               << m_system.rhs()
+               << "\n";  */ 
+               
         m_pde_ptr = pde;
         m_bases.clear();
         m_bases.push_back(bases);
-        m_options = opt;
-        refresh(); // virtual call to derived
+        m_options = opt;                    // m_options is already initialized in the constructor of gsAssembler
+                                            // and adjusted in gsPoissonAssembler::gsPoissonAssembler() beforehand
+                                            
+        refresh(); // virtual call to derived                                         // this function affects m_system.matrix()
         GISMO_ASSERT( check(), "Something went wrong in assembler initialization");
+        
     }
 
 
@@ -364,6 +403,7 @@ public:
                     const gsBasisRefs<T>     & basis,
                     const gsOptionList & opt = defaultOptions() )
     {
+        gsInfo << "gsAssembler<T>::initialize() 4" << "\n";
         GISMO_ASSERT(pde.domain().nPatches() ==1,
                      "You cannot initialize a multipatch domain with bases on a single patch");
         m_pde_ptr = memory::make_shared_not_owned(&pde);
@@ -388,7 +428,7 @@ public:
     /** @brief Penalty constant for patch \a k, used for Nitsche and
     / Discontinuous Galerkin methods
     */
-    T penalty(index_t k) const
+    T penalty(int k) const
     {
         const short_t deg = m_bases[0][k].maxDegree();
         return (deg + m_bases[0][k].dim()) * (deg + 1) * T(2.0);
@@ -422,28 +462,71 @@ public: /* Element visitors */
 
     /// @brief Iterates over all elements of the domain and applies
     /// the \a ElementVisitor
-    template<class ElementVisitor>
-    void push()
+    template<class ElementVisitor>               // ElementVisitor is a template name, which can also be other names, used to identify operation on elements
+    void push()                                  // invoked by gsPoissonAssembler::assemble(); invoking apply()
     {
+        
+        gsInfo << "gsAssembler<ElementVisitor>::push()\n"                                  // first appearance of gsVisitorPoisson, calling apply() for each patch
+               << "    template being " << typeid(ElementVisitor).name() << "\n"; 
+               
+//         gsInfo << "  m_pde_ptr->domain().nPatches(): " << m_pde_ptr->domain().nPatches() << "\n";
+//         gsInfo << "*m_pde_ptr: " << *m_pde_ptr << "\n";
+        
+        
+        gsInfo << "\nLooping over each patch\n";
+        
         for (size_t np = 0; np < m_pde_ptr->domain().nPatches(); ++np)
         {
+            gsInfo << "patch: " << np << "\n";
+            
             ElementVisitor visitor(*m_pde_ptr);
+            
+//             gsInfo << "  name of ElementVisitor: " << typeid(visitor).name() << "\n";
+            
+            
+            gsInfo << "\n";
+            
             //Assemble (fill m_matrix and m_rhs) on patch np
-            apply(visitor, np);
+            apply(visitor, np);                                             // apply(): a function of gsAssembler defined below
+                                                                            // no side information provided here
         }
+        
+        gsInfo << "\n";
+        gsInfo << "gsAssembler<T>::push() finished, resulting in\n";
+        
+/*        gsInfo << "  m_system.matrix():\n"
+               << m_system.matrix()
+               << "\n";
+               
+        gsInfo << "  m_system.rhs():\n"
+               << m_system.rhs()
+               << "\n";  */                 
+        
+        
+        
     }
 
     /// @brief Iterates over all elements of the boundaries \a BCs and
     /// applies the \a BElementVisitor
     template<class BElementVisitor>
-    void push(const bcContainer & BCs)
-    {
+    void push(const bcContainer & BCs)                                  // bcContainer is an alias of gsBoundaryConditions<T>::bcContainer, see line 284,
+    {                                                                   // which is an alias of std::deque<boundary_condition<T> >, see gsBoundaryConditions.h
+        
+        std::cout << "gsAssembler<T>::push()\n"
+                  << "    template being " << typeid(BElementVisitor).name() << "\n"
+                  << "    argument of type bcContainer" << ", and size being " << BCs.size() << "\n\n";
+        
         for (typename bcContainer::const_iterator it
              = BCs.begin(); it!= BCs.end(); ++it)
         {
+            
+            gsInfo << "\n";
+            gsInfo << "~~~~~~~~~~~~~~~~~~~\n";              
+            gsInfo << "side: " << it->side() << "\n\n";
+            
             BElementVisitor visitor(*m_pde_ptr, *it);
             //Assemble (fill m_matrix and m_rhs) contribution from this BC
-            apply(visitor, it->patch(), it->side());
+            apply(visitor, it->patch(), it->side());                    // go to line 746
         }
     }
 
@@ -452,6 +535,9 @@ public: /* Element visitors */
     template<class ElementVisitor>
     void push(const ElementVisitor & visitor)
     {
+        
+        std::cout << "gsAssembler<T>::push ElementVisitor" << std::endl;
+        
         for (size_t np = 0; np < m_pde_ptr->domain().nPatches(); ++np)
         {
             ElementVisitor curVisitor = visitor;
@@ -480,8 +566,8 @@ public: /* Element visitors */
         for ( typename gsMultiPatch<T>::const_iiterator
                   it = mp.iBegin(); it != mp.iEnd(); ++it )
         {
-            const boundaryInterface & iFace = //recover master elemen
-                ( m_bases[0][it->first() .patch].numElements(it->first() .side() ) <
+            const boundaryInterface & iFace =                                                   // recover master elemen   
+                ( m_bases[0][it->first() .patch].numElements(it->first() .side() ) <            // boundaryInterface is a class defined in gsBoundary.h
                   m_bases[0][it->second().patch].numElements(it->second().side() ) ?
                   it->getInverse() : *it );
 
@@ -494,28 +580,28 @@ public:  /* Dirichlet degrees of freedom computation */
 
     /// @brief Triggers computation of the Dirichlet dofs
     /// \param[in] unk the considered unknown
-    void computeDirichletDofs(short_t unk = 0);
+    void computeDirichletDofs(int unk = 0);
 
     /// @brief the user can manually set the dirichlet Dofs for a given patch and
     /// unknown, based on the Basis coefficients
     /// \param[in] coefMatrix the coefficients of the function
     /// \param[in] unk the consideren unknown
     /// \param[in] patch the patch index
-    void setFixedDofs(const gsMatrix<T> & coefMatrix, short_t unk = 0, size_t patch = 0);
+    void setFixedDofs(const gsMatrix<T> & coefMatrix, int unk = 0, int patch = 0);
 
     /// @brief the user can manually set the dirichlet Dofs for a given patch and
     /// unknown.
     /// \param[in] vals the values of the eliminated dofs.
     /// \param[in] unk the considered unknown
-    void setFixedDofVector(gsMatrix<T> vals, short_t unk = 0);
+    void setFixedDofVector(gsMatrix<T> vals, int unk = 0);
 
     /// Enforce Dirichlet boundary conditions by diagonal penalization
     /// \param[in] unk the considered unknown
-    void penalizeDirichletDofs(short_t unk = 0);
+    void penalizeDirichletDofs(int unk = 0);
 
     /// @brief Sets any Dirichlet values to homogeneous (if applicable)
     /// \param[in] unk the considered unknown
-    void homogenizeFixedDofs(short_t unk = 0)
+    void homogenizeFixedDofs(int unk = 0)
     {
         if(unk==-1)
         {
@@ -526,17 +612,17 @@ public:  /* Dirichlet degrees of freedom computation */
             m_ddof[unk].setZero();
     }
 
-    // index_t numFixedDofs(short_t unk = 0) {return m_dofMappers[unk].boundarySize();}
+    // index_t numFixedDofs(int unk = 0) {return m_dofMappers[unk].boundarySize();}
 
     /// @brief Returns all the Dirichlet values (if applicable)
     const std::vector<gsMatrix<T> > & allFixedDofs() const { return m_ddof; }
 
     /// @brief Returns the Dirichlet values for a unknown (if applicable)
     /// \param[in] unk the considered unknown
-    const gsMatrix<T> & fixedDofs(short_t unk=0) const { return m_ddof[unk]; }
+    const gsMatrix<T> & fixedDofs(int unk=0) const { return m_ddof[unk]; }
 
     GISMO_DEPRECATED
-    const gsMatrix<T> & dirValues(short_t unk=0) const { return m_ddof[unk]; }//remove
+    const gsMatrix<T> & dirValues(int unk=0) const { return m_ddof[unk]; }//remove
 
 protected:  /* Helpers for Dirichlet degrees of freedom computation */
 
@@ -546,7 +632,7 @@ protected:  /* Helpers for Dirichlet degrees of freedom computation */
     /// \param[in] unk_ the considered unknown
     void computeDirichletDofsIntpl(const gsDofMapper     & mapper,
                                    const gsMultiBasis<T> & mbasis,
-                                   const short_t unk_ = 0);
+                                   const int unk_ = 0);
 
     /// @brief calculates the values of the eliminated dofs based on L2 Projection.
     /// \param[in] mapper the dofMapper for the considered unknown
@@ -554,7 +640,7 @@ protected:  /* Helpers for Dirichlet degrees of freedom computation */
     /// \param[in] unk_ the considered unknown
     void computeDirichletDofsL2Proj(const gsDofMapper     & mapper,
                                     const gsMultiBasis<T> & mbasis,
-                                    const short_t unk_ = 0);
+                                    const int unk_ = 0);
 
 public:  /* Solution reconstruction */
 
@@ -563,7 +649,7 @@ public:  /* Solution reconstruction */
     /// \param[out] result the solution in form of a gsMultiBasis
     /// \param[in] unk the considered unknown
     virtual void constructSolution(const gsMatrix<T>& solVector,
-                                   gsMultiPatch<T>& result, short_t unk = 0) const;
+                                   gsMultiPatch<T>& result, int unk = 0) const;
 
 
 
@@ -578,7 +664,7 @@ public:  /* Solution reconstruction */
                                    gsMultiPatch<T>& result,
                                    const gsVector<index_t>  & unknowns) const;
 
-    gsField<T> constructSolution(const gsMatrix<T>& solVector, short_t unk = 0) const;
+    gsField<T> constructSolution(const gsMatrix<T>& solVector, int unk = 0) const;
 
     /// @brief Update solution by adding the computed solution vector
     /// to the current solution specified by \par result. This method assumes that all
@@ -628,7 +714,7 @@ public: // *** Accessors ***
     }
 
     /// @brief Returns the number of (free) degrees of freedom
-    index_t numDofs() const
+    int numDofs() const
     {
         index_t sum = 0;
         for (index_t c = 0; c!= m_system.numColBlocks(); ++c)
@@ -643,7 +729,8 @@ protected:
     /// and initializes the sparse system (without allocating memory.
     void scalarProblemGalerkinRefresh();
 
-protected:
+// protected:
+public:
 
     /// @brief Generic assembly routine for volume or boundary integrals
     /// \param[in] visitor The visitor for the boundary or volume integral
@@ -663,23 +750,45 @@ protected:
 
 template <class T>
 template<class ElementVisitor>
-void gsAssembler<T>::apply(ElementVisitor & visitor,
+void gsAssembler<T>::apply(ElementVisitor & visitor,       // called by push(), line 490 for element, or line 522 for boundary element
+                                                           // consisting of initialize(), evaluate(), assemble(), localToGlobal()
                            size_t patchIndex,
                            boxSide side)
 {
-    //gsDebug<< "Apply to patch "<< patchIndex <<"("<< side <<")\n";
+/*    gsInfo << "\n";
+    gsInfo << "############################################" << "\n";   */ 
+    
+    std::cout << "gsAssembler<T>::apply()\n"
+              << "    patchIndex: "<< patchIndex <<", index of side: "<< side.index() 
+              <<"\n\n";
+    
+//     gsDebug<< "Apply to patch "<< patchIndex <<"("<< side <<")\n";
 
-    const gsBasisRefs<T> bases(m_bases, patchIndex);
+    const gsBasisRefs<T> bases(m_bases, patchIndex);        // m_bases, a member of class gsAssembler, initialized through gsAssembler<T>::initialize() in the constructor of gsPoissonAssembler
+    gsInfo << "\n";
 
 #pragma omp parallel
 {
-    gsQuadRule<T> quRule ; // Quadrature rule
+    
+    gsInfo << "creating quRule, quNodes, quWeights\n";
+    
+    gsQuadRule<T> quRule ; // Quadrature rule               // gsQuadRule.h is included in this file
+    
     gsMatrix<T> quNodes  ; // Temp variable for mapped nodes
+    
     gsVector<T> quWeights; // Temp variable for mapped weights
+    
+//     gsInfo << "finished creating quRule, quNodes, quWeights\n";
+    
+    gsInfo << "\n";
+//     gsInfo << "  quRule.numNodes() " << quRule.numNodes() << ", quRule.dim() " << quRule.dim() << "\n";    
+        
 
     ElementVisitor
 #ifdef _OPENMP
     // Create thread-private visitor
+    
+//     gsInfo << "  find me\n";
     visitor_(visitor);
     const int tid = omp_get_thread_num();
     const int nt  = omp_get_num_threads();
@@ -687,33 +796,110 @@ void gsAssembler<T>::apply(ElementVisitor & visitor,
     &visitor_ = visitor;
 #endif
 
+//     gsInfo << "initializing reference quadrature rule and visitor data" << "\n";
     // Initialize reference quadrature rule and visitor data
-    visitor_.initialize(bases, patchIndex, m_options, quRule);
+    
+    visitor_.initialize(bases, patchIndex, m_options, quRule);                                                     // gsVisitorPoisson::initialize()
+    
+//     gsInfo << "  bases.size(): " << bases.size() << "\n";
 
-    const gsGeometry<T> & patch = m_pde_ptr->patches()[patchIndex];
+//     gsInfo << "finished initializing\n";
+//     gsInfo << "\n";
+        
+    const gsGeometry<T> & patch = m_pde_ptr->patches()[patchIndex];      // m_pde_ptr is initialized by pde in the constructor of gsPoissonAssembler in poisson_example.cpp
+    
+//     patch.basis(0).print(gsInfo);
 
     // Initialize domain element iterator -- using unknown 0
     typename gsBasis<T>::domainIter domIt = bases[0].makeDomainIterator(side);
 
+    
+    gsInfo << "\n\n";
+    gsInfo << "(iterating over each domain)\n";     // loop for quNodes, gsVisitorPoisson::evaluate(), gsVisitorPoisson::assemble() and gsVisitorPoisson::localToGlobal()
+    
+    unsigned int id_domain_custom = 0;
+    
     // Start iteration over elements
 #ifdef _OPENMP
     for ( domIt->next(tid); domIt->good(); domIt->next(nt) )
+//         gsInfo << "nt: " << nt << "\n";
 #else
     for (; domIt->good(); domIt->next() )
 #endif
     {
+        
+        gsInfo << "############################################" << "\n";
+        gsInfo << "id_domain_custom: " << id_domain_custom++ << "\n";
+        
+        gsInfo << "\n";
+        gsInfo << "*******************\n"
+               << "dealing with quNodes and quWeights\n\n";
+        
         // Map the Quadrature rule to the element
+        
+        gsInfo << "  domIt->lowerCorner(): \n" 
+               << domIt->lowerCorner() 
+               << "\n"
+               << "  upperCorner(): \n" 
+               << domIt->upperCorner() 
+               << "\n";
+               
         quRule.mapTo( domIt->lowerCorner(), domIt->upperCorner(), quNodes, quWeights );
+        
+//         gsInfo << "   quNodes.at(0)" << quNodes.at(0) << "   quNodes.at(1)" << quNodes.at(1) << "   quNodes.at(2)" << quNodes.at(2) <<  "\n";
+        
+/*        gsInfo << "  quNodes:\n";
+        gsInfo << quNodes.asVector();
+        gsInfo << "\n";
+        gsInfo << "  quWeights:\n";       // weights of quadrature points here are allocated globally; they equal weights in the reference cell * 1/n_cells
+        gsInfo << quWeights.asVector();                 
+        gsInfo << "\n\n";  */      
+//         
+//         gsInfo << "evaluate the function\n";
+//         
+//         gsInfo << "  value: \n";
+//         gsInfo << patch.eval(quNodes).asVector() << "\n";
+//         
+//         
+//         gsInfo << "  first derivative: \n";
+//         gsInfo << patch.deriv(quNodes).asVector() << "\n";
+// 
+//         gsInfo << "  second derivative: \n";
+//         gsInfo << patch.deriv2(quNodes).asVector() << "\n";
+        
+        
+        
 
         // Perform required evaluations on the quadrature nodes
-        visitor_.evaluate(bases, patch, quNodes);
+        visitor_.evaluate(bases, patch, quNodes);                                                                  // gsVisitorPoisson::evaluate()
 
         // Assemble on element
-        visitor_.assemble(*domIt, quWeights);
+        visitor_.assemble(*domIt, quWeights);                                                                      // gsVisitorPoisson::assemble()
 
+        
+/*        gsInfo << "\n";
+        gsInfo << "m_ddof:\n";
+        for (unsigned int i =0; i<m_ddof.size(); ++i)
+        {
+            gsInfo << m_ddof[i] << "\n";               
+        }
+        
+        gsInfo << "\n";
+        gsInfo << "m_system.matrix():\n"
+               << m_system.matrix();
+        gsInfo << "m_system.rhs():\n"
+               << m_system.rhs()
+               << "\n";  */  
+               
+               
         // Push to global matrix and right-hand side vector
 #pragma omp critical(localToGlobal)
-        visitor_.localToGlobal(patchIndex, m_ddof, m_system); // omp_locks inside
+        visitor_.localToGlobal(patchIndex, m_ddof, m_system); // omp_locks inside       // gsVisitorPoisson::localToGlobal()
+                                                                                        // m_system, an object of gsSparseSystem<T>, declared in line 304
+                                                                                        // 
+                                                                                        // by far, it is correctly assembled, not clear what happens inside     
+
+        gsInfo << "\n";
     }
 }//omp parallel
 
@@ -725,10 +911,13 @@ template<class InterfaceVisitor>
 void gsAssembler<T>::apply(InterfaceVisitor & visitor,
                            const boundaryInterface & bi)
 {
+    
+    std::cout << "gsAssembler<T>::apply() 1" << std::endl;
+    
     gsRemapInterface<T> interfaceMap(m_pde_ptr->patches(), m_bases[0], bi);
 
-    const index_t patchIndex1      = bi.first().patch;
-    const index_t patchIndex2      = bi.second().patch;
+    const int patchIndex1      = bi.first().patch;
+    const int patchIndex2      = bi.second().patch;
     const gsBasis<T> & B1 = m_bases[0][patchIndex1];// (!) unknown 0
     const gsBasis<T> & B2 = m_bases[0][patchIndex2];
 
@@ -744,12 +933,12 @@ void gsAssembler<T>::apply(InterfaceVisitor & visitor,
 
     // Initialize domain element iterators
     typename gsBasis<T>::domainIter domIt = interfaceMap.makeDomainIterator();
-    //int count = 0;
+    int count = 0;
 
     // iterate over all boundary grid cells on the "left"
     for (; domIt->good(); domIt->next() )
     {
-        //count++;
+        count++;
 
         // Compute the quadrature rule on both sides
         quRule.mapTo( domIt->lowerCorner(), domIt->upperCorner(), quNodes1, quWeights);

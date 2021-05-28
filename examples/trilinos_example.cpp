@@ -141,6 +141,10 @@ int main(int argc, char**argv)
             gsInfo << "x = "<< x.transpose() <<"\n\n";
     }
 
+//     gsInfo << "GISMO_WITH_TRILINOS: " << GISMO_WITH_TRILINOS << "\n";
+
+    gsInfo << "solver.substr(0,6): " << solver.substr(0,6) << "\n";
+    
 #ifdef GISMO_WITH_TRILINOS
 
     // Converting Eigen-Matrix to Trilinos/Epetra
@@ -159,6 +163,8 @@ int main(int argc, char**argv)
     // --------------------Solving with Trilinos solvers----------------------
     // -----------------------------------------------------------------------
 
+    gsInfo << "solver.substr(0,6): " << solver.substr(0,6) << "\n";
+    
     if (solver.substr(0,6) == "Amesos")
     {
         /// Sparse direct solver: Amesos

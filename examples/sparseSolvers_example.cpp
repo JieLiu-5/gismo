@@ -50,13 +50,26 @@ int main(int argc, char** argv)
     for (index_t i = 0; i!=mat_size; ++i)
         Q(i,i) = b[i] = i+1;
 
+    gsInfo << "Q reads: \n";
+    gsInfo << Q;
+    gsInfo << "b reads: \n";
+    gsInfo << b;
+    gsInfo << "\n";
+    
+    
     Q.makeCompressed(); // always call makeCompressed after sparse matrix has been filled
 
+    gsInfo << "After compressing, Q reads: \n";
+    gsInfo << Q;    
+    
     gsSparseSolver<>::CGIdentity solverCGI;
     solverCGI.compute(Q);
     x = solverCGI.solve(b);
     gsInfo << "Solve Ax = b with Eigen's CG identity preconditioner.\n";
     report( x, x0, succeeded );
+    
+    
+    
 
     gsSparseSolver<>::CGDiagonal solverCGD;
     solverCGD.compute(Q);

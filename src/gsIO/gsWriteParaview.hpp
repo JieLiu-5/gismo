@@ -547,6 +547,8 @@ void writeSingleCurve(gsFunction<T> const& func,
                       gsMatrix<T> const& supp,
                       std::string const & fn, unsigned npts)
 {
+    gsInfo << "writeSingleCurve<T>()\n";
+    
     const unsigned n = func.targetDim();
     const unsigned d = func.domainDim();
     GISMO_ASSERT( d == 1, "Not a curve");
@@ -554,10 +556,11 @@ void writeSingleCurve(gsFunction<T> const& func,
     gsVector<T> a = supp.col(0);
     gsVector<T> b = supp.col(1);
     gsVector<unsigned> np = uniformSampleCount(a,b, npts );
+    
     gsMatrix<T> pts = gsPointGrid(a,b,np) ;
-
+           
     gsMatrix<T>  eval_func = func.eval  ( pts ) ;//pts
-
+           
     np.conservativeResize(3);
     np.bottomRows(2).setOnes();
 
@@ -591,8 +594,12 @@ void writeSingleCurve(gsFunction<T> const& func,
     file <<"<Points>\n";
     file <<"<DataArray type=\"Float32\" NumberOfComponents=\""<<eval_func.rows()<<"\">\n";
     for ( index_t j=0; j<eval_func.cols(); ++j)
+    {
         for ( index_t i=0; i<eval_func.rows(); ++i)
+        {
             file<< eval_func(i,j) <<" ";
+        }
+    }
     file <<"\n</DataArray>\n";
     file <<"</Points>\n";
     // Lines
@@ -693,6 +700,9 @@ template<class T>
 void gsWriteParaview(const gsGeometry<T> & Geo, std::string const & fn,
                      unsigned npts, bool mesh, bool ctrlNet)
 {
+    
+    gsInfo << "gsWriteParaview<T>::gsWriteParaview()\n";
+    
     const bool curve = ( Geo.domainDim() == 1 );
 
     gsParaviewCollection collection(fn);
@@ -711,27 +721,7 @@ void gsWriteParaview(const gsGeometry<T> & Geo, std::string const & fn,
     if ( mesh ) // Output the underlying mesh
     {
         const std::string fileName = fn + "_mesh";
-
-	int ptsPerEdge;
-
-	// If not using default, compute the resolution from npts.
-	if(npts!=8)
-	{
-	    const T evalPtsPerElem = npts * (1.0 / Geo.basis().numElements());
-
-	    // The following complicated formula should ensure similar
-	    // resolution of the mesh edges and the surface. The
-	    // additional multiplication by deg - 1 ensures quadratic
-	    // elements to be approximated by at least two lines etc.
-	    ptsPerEdge = cast<T,int>(
-            math::max(Geo.basis().maxDegree()-1, (index_t)1) * math::pow(evalPtsPerElem, T(1.0)/Geo.domainDim()) );
-	}
-	else
-	{
-	    ptsPerEdge = npts;
-	}
-
-        writeSingleCompMesh(Geo.basis(), Geo, fileName, ptsPerEdge);
+        writeSingleCompMesh(Geo.basis(), Geo, fileName, npts);
         collection.addPart(fileName, ".vtp");
     }
 

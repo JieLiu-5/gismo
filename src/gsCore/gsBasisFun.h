@@ -137,6 +137,9 @@ gsBasisFun<T>::support()  const
 template<class T> void
 gsBasisFun<T>::eval_into(const gsMatrix<T>& u, gsMatrix<T>& result )  const
 {
+    
+    gsInfo << "  gsBasisFun::eval_into()\n";
+    
     m_basis.evalSingle_into(m_index, u, result);
 }
 

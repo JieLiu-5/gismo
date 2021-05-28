@@ -32,6 +32,8 @@ public:
     /// Constructor from a gsMultiBasis \a bases and a patch index \a k
     inline gsBasisRefs(std::vector<gsMultiBasis<T> > & bases, const size_t k)
     {
+        gsInfo << "gsBasisRefs<T>::gsBasisRefs()\n";
+        
         GISMO_ASSERT(bases.size()>0, "Cannot construct empty list of gsBasis.");
         m_refs.reserve(bases.size());
         for(mbIterator  it = bases.begin(); it != bases.end(); ++it)
@@ -59,7 +61,7 @@ public:
     { return m_refs.size(); }
 
     /// Return the parametric dimension of the bases (assumed to be the same for all the bases)
-    inline short_t dim() const { return m_refs.front()->dim();}
+    inline int dim() const { return m_refs.front()->dim();}
 
 private:
     std::vector<const gsBasis<T>*> m_refs;

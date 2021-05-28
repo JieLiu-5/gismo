@@ -268,6 +268,9 @@ public:
 
     void reservePerColumn(const index_t nz)
     {
+//         gsInfo << "gsSparseMatrix<T>::reservePerColumn()\n"
+//                << "    nz: " << nz << "\n";
+        
         Base::reserve(gsVector<index_t>::Constant(this->outerSize(), nz));
     }
 
@@ -320,6 +323,8 @@ public:
         }
         return gsAsConstVector<_Index>(this->innerNonZeroPtr(),this->innerSize());
     }
+    
+    
 
     std::string printSparsity() const
     {

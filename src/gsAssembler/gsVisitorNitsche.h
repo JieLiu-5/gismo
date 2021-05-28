@@ -33,7 +33,11 @@ public:
 
     gsVisitorNitsche(const gsPde<T> & , const boundary_condition<T> & s)
     : dirdata_ptr( s.function().get() ), side(s.side())
-    { }
+    { 
+        gsInfo << "gsVisitorNitsche<T>::gsVisitorNitsche()\n"
+               << "    creating dirdata_ptr and side which are initialized by the arguments\n"
+               << "    creating members md, actives, basisData, dirdata, unormal, pGrads\n\n";
+    }
 
 /** @brief
     Constructor of the assembler object.
@@ -69,15 +73,29 @@ public:
                     const gsOptionList & options, 
                     gsQuadRule<T>    & rule)
     {
+        
+        gsInfo << "\n";
+        gsInfo << "*******************\n";            
+        std::cout << "gsVisitorNitsche<T>::initialize()\n"
+                  << "    setting up quadrature\n\n";
+                  
+        gsInfo << "side.direction(): " << side.direction() << "\n";
+                  
         // Setup Quadrature (harmless slicing occurs)
         rule = gsQuadrature::get(basis, options, side.direction());
 
+        gsInfo << "\n";
+        gsInfo << "setting flags for md\n";
+        
         // Set Geometry evaluation flags
         md.flags = NEED_VALUE | NEED_MEASURE | NEED_GRAD_TRANSFORM;
 
         // Compute penalty parameter
         const int deg = basis.maxDegree();
         penalty = (deg + basis.dim()) * (deg + 1) * T(2.5);
+        
+        gsInfo << "penalty parameter: " << penalty << "\n";
+        
     }
 
     // Evaluate on element.
@@ -86,20 +104,69 @@ public:
                          // todo: add element here for efficiency
                          const gsMatrix<T>      & quNodes)
     {
+        
+        gsInfo << "\n";
+        gsInfo << "*******************\n";            
+        std::cout << "gsVisitorNitsche<T>::evaluate()\n\n";
+//                   << "    setting up quadrature\n\n";    
+                  
         md.points = quNodes;
+        
+        gsInfo << "  md.points: " << "\n"
+               << md.points << "\n";
+               
+               
         // Compute the active basis functions
         // Assumes actives are the same for all quadrature points on the current element
         basis.active_into(md.points.col(0) , actives);
+                
         const index_t numActive = actives.rows();
+
+        gsInfo << "actives(" << numActive << " in total): \n";         
+        gsInfo << actives.asVector();  
+        gsInfo << "\n";
 
         // Evaluate basis values and derivatives on element
         basis.evalAllDers_into( md.points, 1, basisData);
+        
+        
+        gsInfo << "\n";
+        gsInfo << "  size of basisData: " << basisData.size() << "\n";
+        gsInfo << "  size of basisData[0]: " << basisData[0].size()
+               << ", nrows: " << basisData[0].rows()
+               << ", ncols: " << basisData[0].cols()
+               << "\n";
+               
+        gsInfo << "\n";
+               
+        gsInfo << "  basisData[0](values): \n";  
+        for (auto i=0; i<basisData[0].rows(); ++i)
+        {
+            gsInfo << "  " << i << "th basis: " << basisData[0].row(i) << "\n";
+            
+        }
+        
+        gsInfo << "\n";
+        gsInfo << "  basisData[1](gradients): \n";
+        for (auto i=0; i<basisData[1].rows(); ++i)
+        {
+            gsInfo << "  " << i << "th basis: " << basisData[1].row(i) << "\n";
+            
+        }
+        
+        gsInfo << "\n";
+        
 
         // Compute geometry related values
         geo.computeMap(md);
 
         // Evaluate the Dirichlet data
         dirdata_ptr->eval_into(md.values[0], dirData);
+        
+        gsInfo << "\n";
+        gsInfo << "  dirData: \n"
+               << dirData
+               << "\n";        
 
         // Initialize local matrix/rhs
         localMat.setZero(numActive, numActive);
@@ -109,30 +176,63 @@ public:
     inline void assemble(gsDomainIterator<T>    & element,
                          const gsVector<T>      & quWeights)
     {
+        gsInfo << "\n";
+        gsInfo << "*******************\n";            
+        std::cout << "gsVisitorNitsche<T>::assemble()\n\n";
+        
         gsMatrix<T> & bGrads = basisData[1];
         const index_t numActive = actives.rows();
+        
+        gsInfo << "bGrads: \n"
+               << bGrads
+               << "\n";        
 
         for (index_t k = 0; k < quWeights.rows(); ++k) // loop over quadrature nodes
         {
+            
+        gsInfo << "\n";
+        gsInfo << k << "th quadrature" << "\n\n";              
         
         const typename gsMatrix<T>::Block bVals =
             basisData[0].block(0,k,numActive,1);
+            
+        gsInfo << "bVals: \n"
+               << bVals
+               << "\n";                
 
         // Compute the outer normal vector on the side
         outerNormal(md, k, side, unormal);
+        
+        gsInfo << "unormal: \n" << unormal << "\n"
+               << "unormal.norm(): " << unormal.norm()
+               << "\n\n";         
 
         // Multiply quadrature weight by the geometry measure
         const T weight = quWeights[k] *unormal.norm();   
 
+        
+        gsInfo << "weight: " << weight
+               << "\n";  
+               
         // Compute the unit normal vector 
         unormal.normalize();
+        
+        gsInfo << "unormal: \n" << unormal << "\n\n";           
         
         // Compute physical gradients at k as a Dim x NumActive matrix
         transformGradients(md, k, bGrads, pGrads);
         
+        
+        gsInfo << "\n";
+        gsInfo << "physical gradients: \n"
+               << pGrads
+               << "\n";          
+        
         // Get penalty parameter
         const T h = element.getCellSize();
         const T mu = penalty / (0!=h?h:1);
+        
+        gsInfo << "h: " << h << ", mu: " << mu << "\n";
 
         // Sum up quadrature point evaluations
         localRhs.noalias() -= weight * (( pGrads.transpose() * unormal - mu * bVals )
@@ -142,12 +242,26 @@ public:
                            +  (bVals * unormal.transpose() * pGrads).transpose()
                            -  mu * bVals * bVals.transpose() );
         }
+        
+        gsInfo << "\n";
+        gsInfo << "localRhs: \n"
+               << localRhs
+               << "\n";  
+        
+        gsInfo << "localMat: \n"                                          
+               << localMat
+               << "\n";  
+
     }
 
-    inline void localToGlobal(const index_t                     patchIndex,
-                              const std::vector<gsMatrix<T> > & ,
-                              gsSparseSystem<T>               & system)
+    inline void localToGlobal(const int patchIndex,
+                              const std::vector<gsMatrix<T> >    & ,
+                              gsSparseSystem<T>     & system)
     {
+        gsInfo << "\n";
+        gsInfo << "*******************\n";            
+        std::cout << "gsVisitorNitsche<T>::localToGlobal()\n\n";
+        
         // Map patch-local DoFs to global DoFs
         system.mapColIndices(actives, patchIndex, actives);
 
@@ -156,10 +270,10 @@ public:
     }
     
     void localToGlobal(const gsDofMapper  & mapper,
-                       const gsMatrix<T>  & eliminatedDofs,
-                       const index_t        patchIndex,
-                       gsSparseMatrix<T>  & sysMatrix,
-                       gsMatrix<T>        & rhsMatrix )
+                       const gsMatrix<T>     & eliminatedDofs,
+                       const int patchIndex,
+                       gsSparseMatrix<T>     & sysMatrix,
+                       gsMatrix<T>           & rhsMatrix )
     {
         // Local DoFs to global DoFs
         mapper.localToGlobal(actives, patchIndex, actives);
@@ -194,7 +308,7 @@ private:
     // Basis values
     std::vector<gsMatrix<T> > basisData;
     gsMatrix<T>      pGrads;
-    gsMatrix<index_t> actives;
+    gsMatrix<unsigned> actives;
 
     // Normal and Neumann values
     gsVector<T> unormal;

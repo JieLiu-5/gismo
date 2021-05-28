@@ -18,17 +18,15 @@
 #include <gsSolver/gsLinearOperator.h>
 
 namespace gismo {
-/**
-@brief Class for representing the product of objects of type \a gsLinearOperator as \a gsLinearOperator
 
-For given operators \f$ A_1, A_2, ..., A_N\f$, it implements \f$ A_N,
-..., A_1\f$, so \f$ A_1 \f$ is applied first, and \f$ A_N \f$ applied
-last. The operator has dimensions A_N.rows() x A_1.cols().
-
-For composition of preconditioners, cf. also \a gsCompositePrecOp
-
-@ingroup Solver
-    */
+/// @brief Class for representing the product of objects of type \a gsLinearOperator as \a gsLinearOperator
+///
+/// Note, for given operators \f$ A_1, A_2, ..., A_N\f$, it implements
+/// \f$ A_N, ..., A_1\f$, so \f$ A_1 \f$ is applied first, and \f$ A_N \f$ applied last.
+///
+/// For composition of preconditioners, cf. also \a gsCompositePrecOp
+///
+/// @ingroup Solver
 template<typename T>
 class gsProductOp GISMO_FINAL : public gsLinearOperator<T>
 {
@@ -92,7 +90,7 @@ public:
     /// Add another operator at the end
     void addOperator( BasePtr op )
     {
-        GISMO_ASSERT ( m_ops.empty() || m_ops.back()->rows() == op->cols(),
+        GISMO_ASSERT ( m_ops.empty() || m_ops.back()->cols() == op->rows(),
                        "Dimensions of the operators do not fit." );
         m_ops.push_back(give(op));
     }

@@ -57,6 +57,9 @@ gsMatrix<T> gsPointGrid( gsVector<T> const & a, gsVector<T> const & b,
 template<class T> inline
 gsMatrix<T> gsPointGrid( T const & t1, T const & t2, unsigned const & n = 100)
 {
+    
+    gsInfo << "gsPointGrid() 1\n";
+    
     gsMatrix<T> ab(1,2); ab << t1, t2; 
     return gsPointGrid(ab, n);
 }
@@ -79,6 +82,7 @@ gsMatrix<T>uniformPointGrid(const gsVector<T>& lower, // note: structure lost
 template<class T> inline
 gsMatrix<T> gsPointGrid(gsMatrix<T> const & ab, int numPoints)
 {   // Note: structure lost
+    gsInfo << "gsPointGrid() 2\n";
     gsGridIterator<T,CUBE> pt(ab,numPoints);
     gsMatrix<T> rvo(ab.rows(), pt.numPoints() );
     for(index_t c = 0; pt; ++pt, ++c)
@@ -93,12 +97,14 @@ gsMatrix<T> gsPointGrid(gsMatrix<T> const & ab, int numPoints)
 /// Construct a grid of points by coordinate vectors in the container
 /// cwise, use out argument res
 template<class T, class CwiseContainer> inline
-void gsPointGrid(CwiseContainer const & cwise, gsMatrix<T>& res)
+void gsPointGrid(CwiseContainer const & cwise, gsMatrix<T>& res)                    // forming coordinates of quadrature points for the 2D case
 {
+//     gsInfo << "gsPointGrid() 3\n";
     gsGridIterator<T,CWISE> pt(cwise);
     res.resize(cwise.size(), pt.numPoints() );
     for(index_t c = 0; pt; ++pt, ++c)
         res.col(c) = *pt;
+//     gsInfo << "res: \n" << res << "\n";
 }
 
 /// Construct a grid of points by coordinate vectors in the container cwise

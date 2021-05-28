@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
     gsWriteParaview(thb, "thb0_init" );
 
     //! [refViaStdVec]
-    std::vector<index_t> box;
+    std::vector<unsigned> box;
     box.push_back( 1 );
     box.push_back( 2 );
     box.push_back( 0 );
@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
     u(0,2) = 0.6;
     u(1,2) = 0.9;
 
-    gsMatrix<index_t> resActives;
+    gsMatrix<unsigned> resActives;
     gsMatrix<real_t>   resEvals;
 
     thb.active_into( u, resActives);
@@ -137,8 +137,8 @@ int main(int argc, char *argv[])
 
     // --------------- some gsHTensorBasis-specific functions ---------------
     //! [stdOpsHTens]
-    gsVector<index_t> resLevels;
-    gsMatrix<index_t> resLowerCorner;
+    gsVector<unsigned> resLevels;
+    gsMatrix<unsigned> resLowerCorner;
 
     thb.getLevelUniqueSpanAtPoints(u, resLevels, resLowerCorner);
 
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 
     // print the underlying tree
     //! [stdOpsHTensTree]
-    gsMatrix<index_t> resUpperCorner;
+    gsMatrix<unsigned> resUpperCorner;
 
     thb.tree().getBoxes( resLowerCorner, resUpperCorner, resLevels);
 

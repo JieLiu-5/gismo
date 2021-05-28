@@ -39,7 +39,7 @@ namespace gismo
     
     
 template<class T>
-class gsBSpline : public gsGeoTraits<1,T>::GeometryBase
+class gsBSpline : public gsGeoTraits<1,T>::GeometryBase      // gsGeoTraits<1,T> is a struct defined in gsGeometry.h, and it contains member GeometryBase, which is an alias of gsGeometry<T>
 {
 public: 
     typedef gsKnotVector<T> KnotVectorType;
@@ -57,7 +57,10 @@ public:
 public:
     
     /// Default empty constructor.
-    gsBSpline() { }
+    gsBSpline() 
+    {
+        gsInfo << "gsBSpline<T>::gsBSpline()\n";
+    }
 
     // enable swap
     using gsGeometry<T>::swap;
@@ -73,9 +76,17 @@ public:
     /// Construct B-Spline by a knot vector and coefficient matrix.
     gsBSpline(KnotVectorType KV, gsMatrix<T> coefs, bool periodic = false )
     {
-        this->m_basis = new Basis(give(KV));
+        
+        gsInfo << "gsBSpline<T>::gsBSpline()\n"
+               << "    knont vector and coefficients as argument\n\n";
+        
+        gsInfo << "size of KV: " << KV.size() << "\n";
+               
+        this->m_basis = new Basis(give(KV));                                    // m_basis and m_coefs are defined in gsGeometry.h
         m_coefs.swap(coefs);
             
+        gsInfo << "size of KV after give(): " << KV.size() << "\n";
+        
         if( periodic )
         {
             const index_t sz = this->basis().size();
@@ -307,7 +318,7 @@ public:
             assert( p.cols()==1 );
             gsBSplineSolver<T> slv;
             std::vector<T> roots;
-            short_t dim = this->geoDim();
+            int dim = this->geoDim();
             gsMatrix<T> ev, tmp(1,1);
             int i(1);
 

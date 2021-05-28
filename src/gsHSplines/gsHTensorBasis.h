@@ -22,7 +22,7 @@
 #include <gsCore/gsBoundary.h>
 
 #include <gsNurbs/gsTensorBSplineBasis.h>
-#include <gsNurbs/gsBSplineBasis.h> // for gsBasis::component(short_t)
+#include <gsNurbs/gsBSplineBasis.h> // for gsBasis::component(int)
 
 #include <gsUtils/gsSortedVector.h>
 
@@ -92,18 +92,18 @@ public:
 
     typedef std::vector< box > boxHistory;
 
-    typedef gsSortedVector< index_t > CMatrix; // charMatrix_
+    typedef gsSortedVector< unsigned > CMatrix; // charMatrix_
 
     typedef typename CMatrix::const_iterator cmatIterator;
 
     typedef gsKnotVector<T> KnotVectorType;
 
-    typedef typename gsBSplineTraits<static_cast<short_t>(d-1),T>::Basis BoundaryBasisType;
+    typedef typename gsBSplineTraits<d-1,T>::Basis BoundaryBasisType;
 
     typedef typename gsBSplineTraits<d,T>::Basis tensorBasis;
 
     /// Dimension of the parameter domain
-    static const short_t Dim = d;
+    static const int Dim = d;
 
 public:
 
@@ -122,13 +122,13 @@ public:
     }
 
     gsHTensorBasis( gsTensorBSplineBasis<d,T> const&  tbasis,
-                    const std::vector<index_t> & boxes)
+                    const std::vector<unsigned> & boxes)
     {
         initialize_class(tbasis);
-        point i1;
-        point i2;
-        //i1.resize(d);
-        //i2.resize(d);
+        gsVector<unsigned int> i1;
+        gsVector<unsigned int> i2;
+        i1.resize(d);
+        i2.resize(d);
         // Set all functions to active
         GISMO_ASSERT( (boxes.size()%(2*d+1))==0,
                       "The points did not define boxes properly. The basis was created without any domain structure.");
@@ -164,8 +164,8 @@ public:
         GISMO_ASSERT(boxes.cols()%2 == 0, "Each box needs two corners but you don't provied gsHTensorBasis constructor with them.");
         initialize_class(tbasis);
 
-        point k1;
-        point k2;
+        gsVector<unsigned int,d> k1;
+        gsVector<unsigned int,d> k2;
 
         for(index_t i = 0; i < boxes.cols()/2; i++)
         {
@@ -198,7 +198,7 @@ public:
  */
     gsHTensorBasis( gsTensorBSplineBasis<d,T> const& tbasis,
                     gsMatrix<T> const & boxes,
-                    const std::vector<index_t> & levels)
+                    const std::vector<unsigned int> & levels)
     {
         GISMO_ASSERT(boxes.rows() == d, "Points in boxes need to be of dimension d.");
         GISMO_ASSERT(boxes.cols()%2 == 0, "Each box needs two corners but you don't provied gsHTensorBasis constructor with them.");
@@ -206,8 +206,8 @@ public:
 
         initialize_class(tbasis);
 
-        gsVector<index_t,d> k1;
-        gsVector<index_t,d> k2;
+        gsVector<unsigned,d> k1;
+        gsVector<unsigned,d> k2;
 
         const size_t mLevel = *std::max_element(levels.begin(), levels.end() );
         needLevel( mLevel );
@@ -305,7 +305,7 @@ public:
     /// The entry <em>m_xmatrix_offset[k]</em>
     /// indicates the index from which the basis functions from
     /// level \em k (i.e., those taken from \f$ B^k \f$) start.
-    std::vector<index_t> m_xmatrix_offset;
+    std::vector<unsigned> m_xmatrix_offset;
 
     //------------------------------------
 
@@ -324,7 +324,7 @@ public:
     }
 
     /// Returns the dimension of the parameter space
-    virtual short_t dim() const
+    virtual int dim() const
     { return d; }
 
     /// Returns the number of breaks (distinct knot values) in
@@ -358,7 +358,7 @@ public:
         result.resize( d, this->size()) ;
         unsigned k(0);
 
-        gsVector<index_t, d> ind;
+        gsVector<unsigned, d> ind;
         for(size_t i = 0; i < m_xmatrix.size(); i++)
         {
             for( CMatrix::const_iterator it =
@@ -440,14 +440,14 @@ public:
     }
 
     // Look at gsBasis.h for the documentation of this function
-    void active_into(const gsMatrix<T> & u, gsMatrix<index_t>& result) const;
+    void active_into(const gsMatrix<T> & u, gsMatrix<unsigned>& result) const;
 
 
     // Look at gsBasis.h for the documentation of this function
-    gsMatrix<index_t> allBoundary( ) const;
+    gsMatrix<unsigned> allBoundary( ) const;
 
     // Look at gsBasis.h for the documentation of this function
-    virtual gsMatrix<index_t> boundaryOffset(boxSide const & s, index_t offset ) const;
+    virtual gsMatrix<unsigned> boundaryOffset(boxSide const & s, unsigned offset ) const;
 
     // Look at gsBasis.h for the documentation of this function
     // /// \todo impl. evalAllDers_into
@@ -470,9 +470,10 @@ public:
     /// Returns a bounding box for the basis' domain
     gsMatrix<T> support() const;
 
-    gsMatrix<T> support(const index_t & i) const;
+    gsMatrix<T> support(const unsigned & i) const;
 
-    void elementSupport_into(const index_t i, gsMatrix<index_t, d, 2>& result) const
+    void elementSupport_into(const unsigned& i,
+                             gsMatrix<unsigned, d, 2>& result) const
     {
         unsigned lvl = levelOf(i);
 
@@ -492,16 +493,16 @@ public:
     }
 
     /// The number of active basis functions at points \a u
-    void numActive_into(const gsMatrix<T> & u, gsVector<index_t>& result) const;
+    void numActive(const gsMatrix<T> & u, gsVector<unsigned>& result) const;
 
     /// The 1-d basis for the i-th parameter component at the highest level
-    virtual gsBSplineBasis<T> & component(short_t i)
+    virtual gsBSplineBasis<T> & component(unsigned i)
     {
         return m_bases[ this->maxLevel() ]->component(i);
     }
 
     /// The 1-d basis for the i-th parameter component at the highest level
-    virtual const gsBSplineBasis<T> & component(short_t i) const
+    virtual const gsBSplineBasis<T> & component(unsigned i) const
     {
         return m_bases[ this->maxLevel() ]->component(i);
     }
@@ -535,14 +536,14 @@ public:
      * then two indices (in the current level indexing) of the lower left corner and finally
      * two indices of the upper right corner, see gsHTensorBasis::refineElements() for details.
      */
-    void refineElements_withCoefs   (gsMatrix<T> & coefs,std::vector<index_t> const & boxes);
-    void refineElements_withTransfer(std::vector<index_t> const & boxes, gsSparseMatrix<T> &transfer);
+    void refineElements_withCoefs   (gsMatrix<T> & coefs,std::vector<unsigned> const & boxes);
+    void refineElements_withTransfer(std::vector<unsigned> const & boxes, gsSparseMatrix<T> &transfer);
 
-    void refineElements_withCoefs2(gsMatrix<T> & coefs,std::vector<index_t> const & boxes);
+    void refineElements_withCoefs2(gsMatrix<T> & coefs,std::vector<unsigned> const & boxes);
 
     // see gsBasis for documentation
     void matchWith(const boundaryInterface & bi, const gsBasis<T> & other,
-                   gsMatrix<index_t> & bndThis, gsMatrix<index_t> & bndOther) const;
+                   gsMatrix<unsigned> & bndThis, gsMatrix<unsigned> & bndOther) const;
 
     short_t maxDegree() const
     {
@@ -579,7 +580,7 @@ public:
     /// Each column of \em Pts represents one evaluation point.
     /// \return levels gsMatrix of size <em>1</em> x <em>n</em>.\n
     /// <em>levels(0,i)</em> is the level of the point defined by the <em>i</em>-th column in \em Pts.
-    index_t getLevelAtPoint(const  gsMatrix<T> & Pt ) const;
+    int getLevelAtPoint(const  gsMatrix<T> & Pt ) const;
 
     // S.K.
     /// @brief Returns the level(s) and knot span(s) at point(s) in the parameter domain.
@@ -594,8 +595,8 @@ public:
     /// the lower corner of the knot span containing <em>i</em>-th point. The corner is given
     /// in unique knot span indices of level lvl[i].
     void getLevelUniqueSpanAtPoints(const  gsMatrix<T> & Pt,
-                                    gsVector<index_t> & lvl,
-                                    gsMatrix<index_t> & loIdx ) const;
+                                    gsVector<unsigned> & lvl,
+                                    gsMatrix<unsigned> & loIdx ) const;
 
     /// Returns the level in which the indices are stored internally
     unsigned maxLevel() const
@@ -604,7 +605,7 @@ public:
     }
 
     /// Returns the level of the function indexed \a i (in continued indices)
-    inline index_t levelOf(index_t i) const
+    inline int levelOf(unsigned i) const
     {
         return std::upper_bound(m_xmatrix_offset.begin(),
                                 m_xmatrix_offset.end(), i)
@@ -671,7 +672,7 @@ public:
      * \em d is the dimension of the parameter domain.\n
      * See description above for details on the format.
      */
-    virtual void refineElements(std::vector<index_t> const & boxes);
+    virtual void refineElements(std::vector<unsigned> const & boxes);
 
     /// Refines all the cells on the side \a side up to level \a lvl
     void refineSide(const boxSide side, index_t lvl);
@@ -701,13 +702,13 @@ public:
     /// with respect to the tensor-product basis
     /// of the corresponding level.
     inline
-    index_t flatTensorIndexOf(const index_t i) const
+    unsigned flatTensorIndexOf(const unsigned i) const
     {
 
         const int level = this->levelOf(i);
 
-        const index_t offset = this->m_xmatrix_offset[level];
-        const index_t ind_in_level = this->m_xmatrix[level][i - offset];
+        const unsigned offset = this->m_xmatrix_offset[level];
+        const unsigned ind_in_level = this->m_xmatrix[level][i - offset];
 
         return ind_in_level;
     }
@@ -739,7 +740,7 @@ public:
     /// and where x1, y1, x2 and y2 are parameters (knots).
     /// @return bounding boxes of the polylines in the form
     /// < levels < polylines_in_one_level < x_ll, y_ll, x_ur, y_ur > > >, where "ur" stands for "upper right" and "ll" for "lower left".
-    std::vector< std::vector< std::vector<index_t > > > domainBoundariesParams( std::vector< std::vector< std::vector< std::vector< T > > > >& result) const;
+    std::vector< std::vector< std::vector< unsigned int > > > domainBoundariesParams( std::vector< std::vector< std::vector< std::vector< T > > > >& result) const;
 
     /// @brief Gives polylines on the boundaries between different levels of the mesh.
     /// @param result variable where to write the polylines in the form
@@ -748,13 +749,13 @@ public:
     /// and where x1, y1, x2 and y2 are indices of the knots with respect to m_maxInsLevel.
     /// @return bounding boxes of the polylines in the form
     /// < levels < polylines_in_one_level < x_ll, y_ll, x_ur, y_ur > > >, where "ur" stands for "upper right" and "ll" for "lower left".
-    std::vector< std::vector< std::vector<index_t > > > domainBoundariesIndices( std::vector< std::vector< std::vector< std::vector<index_t > > > >& result) const;
+    std::vector< std::vector< std::vector< unsigned int > > > domainBoundariesIndices( std::vector< std::vector< std::vector< std::vector< unsigned int > > > >& result) const;
     // TO DO: use gsHDomainLeafIterator for a better implementation
-    size_t numElements() const
+    int numElements() const
     {
         gsHDomainIterator<T, d> domIter(*this);
 
-        size_t numEl = 0;
+        int numEl = 0;
         for (; domIter.good(); domIter.next())
         {
             numEl++;
@@ -779,7 +780,7 @@ public:
     /// @param[in] index flat tensor index of the function in level
     /// @param level Level of the basis.
     /// @return hierachical index, or -1 if it was not found
-    int flatTensorIndexToHierachicalIndex(index_t index,const int level) const;
+    int flatTensorIndexToHierachicalIndex(unsigned index,const int level) const;
 
     /// Fills the vector actives with booleans, that determine if a function
     /// of the given level is active. The functions on the boundary are ordered
@@ -825,14 +826,15 @@ protected:
     void createMoreLevels(int numLevels) const;
 
     /// gets all the boxes along a slice in direction \a dir at parameter \a par.
-    /// the boxes are given back in a std::vector<index_t> and are in the right format
+    /// the boxes are given back in a std::vector<unsigned> and are in the right format
     /// to be given to refineElements().
-    void getBoxesAlongSlice( int dir, T par,std::vector<index_t>& boxes ) const;
+    void getBoxesAlongSlice( int dir, T par,std::vector<unsigned>& boxes ) const;
 
 private:
 
     /// \brief Inserts a domain into the basis
-    void insert_box(point const & k1, point const & k2, int lvl);
+    void insert_box(gsVector<unsigned,d> const & k1,
+                    gsVector<unsigned,d> const & k2, int lvl);
 
     void initialize_class(gsBasis<T> const&  tbasis);
 
@@ -851,13 +853,13 @@ private:
     void addConnectivity(int level, gsMesh<T> & mesh) const;
 
     ///returns a transfer matrix using the characteristic matrix of the old and new basis
-    virtual gsSparseMatrix<T> coarsening(const std::vector<gsSortedVector<index_t> >& old, const std::vector<gsSortedVector<index_t> >& n, const gsSparseMatrix<T,RowMajor> & transfer) const = 0;
-    virtual gsSparseMatrix<T> coarsening_direct(const std::vector<gsSortedVector<index_t> >& old, const std::vector<gsSortedVector<index_t> >& n,  const std::vector<gsSparseMatrix<T,RowMajor> >& transfer) const = 0;
-    virtual gsSparseMatrix<T> coarsening_direct2(const std::vector<gsSortedVector<index_t> >& old, const std::vector<gsSortedVector<index_t> >& n,  const std::vector<gsSparseMatrix<T,RowMajor> >& transfer) const = 0;
+    virtual gsSparseMatrix<T> coarsening(const std::vector<gsSortedVector<unsigned> >& old, const std::vector<gsSortedVector<unsigned> >& n, const gsSparseMatrix<T,RowMajor> & transfer) const = 0;
+    virtual gsSparseMatrix<T> coarsening_direct(const std::vector<gsSortedVector<unsigned> >& old, const std::vector<gsSortedVector<unsigned> >& n,  const std::vector<gsSparseMatrix<T,RowMajor> >& transfer) const = 0;
+    virtual gsSparseMatrix<T> coarsening_direct2(const std::vector<gsSortedVector<unsigned> >& old, const std::vector<gsSortedVector<unsigned> >& n,  const std::vector<gsSparseMatrix<T,RowMajor> >& transfer) const = 0;
 
     /// \brief Implementation of the features common to domainBoundariesParams and domainBoundariesIndices. It takes both
     /// @param indices and @param params but fills in only one depending on @param indicesFlag (if true, then it returns indices).
-    std::vector< std::vector< std::vector<index_t > > > domainBoundariesGeneric(std::vector< std::vector< std::vector< std::vector<index_t > > > >& indices,
+    std::vector< std::vector< std::vector< unsigned int > > > domainBoundariesGeneric(std::vector< std::vector< std::vector< std::vector< unsigned int > > > >& indices,
                                                                                       std::vector< std::vector< std::vector< std::vector< T > > > >& params,
                                                                                       bool indicesFlag ) const;
 
@@ -865,23 +867,23 @@ private:
 public:
     /// \brief Returns transfer matrix betweend the hirarchycal spline given
     /// by the characteristic matrix "old" and this
-    void transfer (const std::vector<gsSortedVector<index_t> > &old, gsSparseMatrix<T>& result);
+    void transfer (const std::vector<gsSortedVector<unsigned> > &old, gsSparseMatrix<T>& result);
 
-    void transfer2 (const std::vector<gsSortedVector<index_t> > &old, gsSparseMatrix<T>& result);
+    void transfer2 (const std::vector<gsSortedVector<unsigned> > &old, gsSparseMatrix<T>& result);
 
     /// \brief Creates characteristic matrices for basis where "level" is the
     /// maximum level i.e. ignoring higher level refinements
     void setActiveToLvl(int level, std::vector<CMatrix>& x_matrix_lvl) const;
 
 
-//    void local2globalIndex( gsVector<index_t,d> const & index,
+//    void local2globalIndex( gsVector<unsigned,d> const & index,
 //                            unsigned lvl,
-//                            gsVector<index_t,d> & result
+//                            gsVector<unsigned,d> & result
 //        ) const;
 
-//    void global2localIndex( gsVector<index_t,d> const & index,
+//    void global2localIndex( gsVector<unsigned,d> const & index,
 //                            unsigned lvl,
-//                            gsVector<index_t,d> & result
+//                            gsVector<unsigned,d> & result
 //        ) const;
 
 }; // class gsHTensorBasis

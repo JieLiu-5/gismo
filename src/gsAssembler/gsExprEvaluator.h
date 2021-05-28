@@ -49,7 +49,9 @@ public:
 public:
 
     gsExprEvaluator() : m_exprdata(gsExprHelper<T>::make()),
-    m_options(defaultOptions()) { }
+    m_options(defaultOptions()) 
+    {    
+    }
 
     gsExprEvaluator(typename gsExprHelper<T>::Ptr env)
     : m_exprdata(env), m_value(-1), m_options(defaultOptions())
@@ -59,7 +61,10 @@ public:
 
     gsExprEvaluator(const gsExprAssembler<T> & o)
     : m_exprdata(o.exprData()), m_options(defaultOptions())
-    { }
+    { 
+        gsInfo << "gsExprEvaluator<T>::gsExprEvaluator()\n";
+//                << "    creating m_exprdata(a pointer to an object of gsExprHelper<T>), pointing to m_exprdata defined in class gsExprAssembler<T>\n";            
+    }
 
     gsOptionList defaultOptions()
     {
@@ -111,7 +116,10 @@ public:
 
     /// Registers \a func as a variable defined on \a G and returns a handle to it
     variable getVariable(const gsFunctionSet<T> & func, geometryMap G)
-    { return m_exprdata->getVar(func, G); }
+    { 
+        gsInfo << "gsExprEvaluator<T>::getVariable()\n";
+        return m_exprdata->getVar(func, G); 
+    }
 
     /// Returns a handle to an isogeometric element
     element getElement() const { return m_element; }
@@ -137,7 +145,11 @@ public:
     /// Calculates the integral of the expression \a expr on the whole integration domain
     template<class E>
     T integral(const expr::_expr<E> & expr)
-    { return compute_impl<E,false,plus_op>(expr); }
+    { 
+//         gsInfo << "gsExprEvaluator<T>::integral() 1\n";
+        
+        return compute_impl<E,false,plus_op>(expr); 
+    }
 
     /// Calculates the integral of the expression \a expr on each element
     template<class E>
@@ -145,7 +157,11 @@ public:
     { return compute_impl<E,true,plus_op>(expr); }
 
     // overloads for scalars
-    T integral(const T & val) { return integral<T>(val); }
+    T integral(const T & val) 
+    { 
+//         gsInfo << "gsExprEvaluator<T>::integral() 2\n";
+        return integral<T>(val); 
+    }
     T integralElWise(const T & val) { return integralElWise<T>(val); }
 
     /// Calculates the integral of the expression \a expr on the
@@ -201,14 +217,14 @@ public:
 #ifdef __DOXYGEN__
     template<class E> void
 #else
-    template<class E, int mode, short_t d>
+    template<class E, int mode, int d>
     typename util::enable_if<E::ScalarValued,void>::type
 #endif
     eval(const expr::_expr<E> & expr,
          gsGridIterator<T,mode,d> & git,
          const index_t patchInd = 0);
 
-    template<class E, int mode, short_t d>
+    template<class E, int mode, int d>
     typename util::enable_if<!E::ScalarValued,void>::type
     eval(const expr::_expr<E> & expr,
               gsGridIterator<T,mode,d> & git,
@@ -323,6 +339,8 @@ T gsExprEvaluator<T>::compute_impl(const expr::_expr<E> & expr)
     //               "Expecting scalar expression instead of "
     //               <<expr.cols()<<" x "<<expr.rows() );
     //expr.print(gsInfo); // precompute
+    
+//     gsInfo << "gsExprEvaluator<T>::compute_impl()\n";
 
     gsQuadRule<T> QuRule;  // Quadrature rule
     gsVector<T> quWeights; // quadrature weights
@@ -357,19 +375,21 @@ T gsExprEvaluator<T>::compute_impl(const expr::_expr<E> & expr)
 
             // Perform required pre-computations on the quadrature nodes
             m_exprdata->precompute(patchInd);
-
+    
             // Compute on element
             elVal = _op::init();
+            
             for (index_t k = 0; k != quWeights.rows(); ++k) // loop over quadrature nodes
                 _op::acc(expr.val().eval(k), quWeights[k], elVal);
-
+            
             //gsDebugVar(elVal);
             _op::acc(elVal, 1, m_value);
             if ( storeElWise )
                 m_elWise.push_back( elVal );
+            
         }
     }
-
+    
     return m_value;
 }
 
@@ -453,8 +473,8 @@ T gsExprEvaluator<T>::computeInterface_impl(const expr::_expr<E> & expr, const i
              iFaces.begin(); iit != iFaces.end(); ++iit)
     {
         const boundaryInterface & iFace = *iit;
-        const index_t patch1 = iFace.first().patch;
-        // const index_t patch2 = iFace.second().patch; //!
+        const int patch1 = iFace.first().patch;
+        // const int patch2 = iFace.second().patch; //!
         // Quadrature rule
         QuRule = gsQuadrature::get(m_exprdata->multiBasis().basis(patch1),
                                    m_options, iFace.first().side().direction());
@@ -491,7 +511,7 @@ T gsExprEvaluator<T>::computeInterface_impl(const expr::_expr<E> & expr, const i
 
 
 template<class T>
-template<class E, int mode, short_t d>
+template<class E, int mode, int d>
 typename util::enable_if<E::ScalarValued,void>::type
 gsExprEvaluator<T>::eval(const expr::_expr<E> & expr,
                          gsGridIterator<T,mode,d> & git,
@@ -519,7 +539,7 @@ gsExprEvaluator<T>::eval(const expr::_expr<E> & expr,
 }
 
 template<class T>
-template<class E, int mode, short_t d>
+template<class E, int mode, int d>
 typename util::enable_if<!E::ScalarValued,void>::type
 gsExprEvaluator<T>::eval(const expr::_expr<E> & expr,
                          gsGridIterator<T,mode,d> & git,

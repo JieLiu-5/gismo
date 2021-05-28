@@ -75,7 +75,7 @@ namespace internal
 
 #include <gsCore/gsDomainIterator.h>
 
-// #include <gsCore/gsTemplateTools.h> // included by gsForwardDeclarations -> gsMemory
+#include <gsCore/gsTemplateTools.h>
 
 // Tensors
 #include <gsTensor/gsTensorDomainIterator.h>

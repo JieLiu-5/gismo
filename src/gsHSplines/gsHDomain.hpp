@@ -892,9 +892,9 @@ gsHDomain<d,T>::query3Recur(box const & qBox, node *_node) const
 
 
 template<short_t d, class T>
-void gsHDomain<d,T>::getBoxes(gsMatrix<index_t>& b1, gsMatrix<index_t>& b2, gsVector<index_t>& level) const
+void gsHDomain<d,T>::getBoxes(gsMatrix<unsigned>& b1, gsMatrix<unsigned>& b2, gsVector<unsigned>& level) const
 {
-    std::vector<std::vector<index_t> > boxes;
+    std::vector<std::vector<unsigned int> > boxes;
 
     // get all boxes in vector-format
     getBoxes_vec(boxes);
@@ -909,7 +909,7 @@ void gsHDomain<d,T>::getBoxes(gsMatrix<index_t>& b1, gsMatrix<index_t>& b2, gsVe
     b2.resize(boxes.size(),d);
     level.resize(boxes.size());
     for(size_t i = 0; i < boxes.size(); i++){
-        for(short_t j = 0; j < d; j++){
+        for(unsigned j = 0; j < d; j++){
             b1(i,j) = boxes[i][j];
             b2(i,j) = boxes[i][j+d];
         }
@@ -919,11 +919,11 @@ void gsHDomain<d,T>::getBoxes(gsMatrix<index_t>& b1, gsMatrix<index_t>& b2, gsVe
 
 
 template<short_t d, class T>
-void gsHDomain<d,T>::getBoxesOnSide(boundary::side s, gsMatrix<index_t>& b1, gsMatrix<index_t>& b2, gsVector<index_t>& level) const
+void gsHDomain<d,T>::getBoxesOnSide(boundary::side s, gsMatrix<unsigned>& b1, gsMatrix<unsigned>& b2, gsVector<unsigned>& level) const
 {
 
     getBoxes( b1, b2, level);
-    std::vector<index_t> onSide;
+    std::vector<int> onSide;
 
     unsigned remainder = (s-1) % 2;
     // remainder will be
@@ -947,7 +947,7 @@ void gsHDomain<d,T>::getBoxesOnSide(boundary::side s, gsMatrix<index_t>& b1, gsM
         for( index_t i = 0; i < b1.rows(); i++)
         {
             // index of upper corner
-            index_t B2( b2(i, quotient ) );
+            unsigned B2( b2(i, quotient ) );
             // transform to index-level
             B2 = B2 << (m_indexLevel - m_maxInsLevel);
 
@@ -958,7 +958,7 @@ void gsHDomain<d,T>::getBoxesOnSide(boundary::side s, gsMatrix<index_t>& b1, gsM
     }
 
     // select only the boxes on side s:
-    for( size_t i=0; i < onSide.size(); i++)
+    for( unsigned i=0; i < onSide.size(); i++)
     {
         b1.row(i) = b1.row( onSide[i] );
         b2.row(i) = b2.row( onSide[i] );
@@ -970,14 +970,14 @@ void gsHDomain<d,T>::getBoxesOnSide(boundary::side s, gsMatrix<index_t>& b1, gsM
 }
 
 template<short_t d, class T>
-void gsHDomain<d,T>::getBoxesInLevelIndex(gsMatrix<index_t>& b1,
-              gsMatrix<index_t>& b2,
-              gsVector<index_t>& level) const{
-    std::vector<std::vector<index_t> > boxes;
+void gsHDomain<d,T>::getBoxesInLevelIndex(gsMatrix<unsigned>& b1,
+              gsMatrix<unsigned>& b2,
+              gsVector<unsigned>& level) const{
+    std::vector<std::vector<unsigned int> > boxes;
     getBoxes_vec(boxes);
     GISMO_ASSERT(d==2 || d==3,"Wrong dimension, should be 2 or 3.");
     //is this test really necessary? florian b.
-    for(size_t i = 0; i < boxes.size(); i++){
+    for(unsigned int i = 0; i < boxes.size(); i++){
         if ((boxes[i][0]==boxes[i][d+0]) || (boxes[i][1]==boxes[i][1+d]))
         {
             boxes.erase(boxes.begin()+i);
@@ -989,15 +989,15 @@ void gsHDomain<d,T>::getBoxesInLevelIndex(gsMatrix<index_t>& b1,
             i--;
         }
     }
-    gsVector<index_t,d>lowerCorner;
-    gsVector<index_t,d>upperCorner;
+    gsVector<unsigned,d>lowerCorner;
+    gsVector<unsigned,d>upperCorner;
     connect_Boxes(boxes);
     b1.resize(boxes.size(),d);
     b2.resize(boxes.size(),d);
     level.resize(boxes.size());
     for(size_t i = 0; i < boxes.size(); i++)
     {
-        for(short_t j = 0; j < d; j++)
+        for(unsigned j = 0; j < d; j++)
         {
 //            b1(i,j) = boxes[i][j];
 //            b2(i,j) = boxes[i][j+d];
@@ -1017,7 +1017,7 @@ void gsHDomain<d,T>::getBoxesInLevelIndex(gsMatrix<index_t>& b1,
 // Keeping the code for the moment, in order not to loose
 // the old code before the new one is properly tested.
 template<short_t d, class T> void
-gsHDomain<d,T>::connect_Boxes2d(std::vector<std::vector<index_t> > &boxes) const
+gsHDomain<d,T>::connect_Boxes2d(std::vector<std::vector<unsigned int> > &boxes) const
 {
     GISMO_ASSERT( d == 2, "This one only works for 2D");
     bool change = true;
@@ -1078,7 +1078,7 @@ gsHDomain<d,T>::connect_Boxes2d(std::vector<std::vector<index_t> > &boxes) const
 }
 
 template<short_t d, class T> void
-gsHDomain<d,T>::connect_Boxes(std::vector<std::vector<index_t> > &boxes) const
+gsHDomain<d,T>::connect_Boxes(std::vector<std::vector<unsigned int> > &boxes) const
 {
     bool change = true;
     while(change)
@@ -1154,7 +1154,7 @@ gsHDomain<d,T>::connect_Boxes(std::vector<std::vector<index_t> > &boxes) const
 
 
 template<short_t d, class T>
-void gsHDomain<d,T>::connect_Boxes_2(std::vector<std::vector<index_t> > &boxes) const
+void gsHDomain<d,T>::connect_Boxes_2(std::vector<std::vector<unsigned int> > &boxes) const
 {
     bool change = true;
     while(change){
@@ -1228,7 +1228,7 @@ void gsHDomain<d,T>::connect_Boxes_2(std::vector<std::vector<index_t> > &boxes) 
 
 
 template<short_t d, class T> void
-gsHDomain<d,T>::getBoxes_vec(std::vector<std::vector<index_t> >& boxes) const
+gsHDomain<d,T>::getBoxes_vec(std::vector<std::vector<unsigned int> >& boxes) const
 {
     boxes.clear();
 
@@ -1254,7 +1254,7 @@ gsHDomain<d,T>::getBoxes_vec(std::vector<std::vector<index_t> >& boxes) const
             global2localIndex(lowerGlob,level,lower);
             global2localIndex(upperGlob,level,upper);
 
-            boxes.push_back(std::vector<index_t>());
+            boxes.push_back(std::vector<unsigned int>());
             for(unsigned i = 0; i < d; i++)
             {
                 boxes.back().push_back(lower[i]);
@@ -1277,7 +1277,7 @@ gsHDomain<d,T>::getBoxes_vec(std::vector<std::vector<index_t> >& boxes) const
  * functions for returning the boudaries of domains
  */
 template<short_t d, class T>
-std::vector< std::vector<std::vector< std::vector< index_t > > > >
+std::vector< std::vector<std::vector< std::vector< unsigned int > > > >
 gsHDomain<d,T>::getPolylines() const
 {
 /*
@@ -1288,11 +1288,11 @@ gsHDomain<d,T>::getPolylines() const
  < levels < polylines_in_one_level < one_polyline < one_segment (x1, y1, x2, y2) > > > > result
  note that <x1, y1, x2, y2 > are so that (x1, y1) <=LEX  (x2, y2)
 */
-    std::vector<std::vector<index_t> > boxes;
+    std::vector<std::vector<unsigned int> > boxes;
     getBoxes_vec(boxes);// Returns all leaves.
 
     // Get rid of boxes that are not of full dimension.
-    for( std::vector< std::vector< index_t> >::iterator it = boxes.begin(); it != boxes.end(); ++it )
+    for( std::vector< std::vector< unsigned int> >::iterator it = boxes.begin(); it != boxes.end(); ++it )
     {
         if( ( (*it)[0] == (*it)[2] ) || ( (*it)[0] == (*it)[2] ) )
             it = boxes.erase(it);
@@ -1304,12 +1304,12 @@ gsHDomain<d,T>::getPolylines() const
     // For each level prepare the vertical lines separately
     for (unsigned int i = 0; i < boxes.size() ; i ++)
     {
-        seg[boxes[i][4]].push_back(gsVSegment<index_t>(boxes[i][0],boxes[i][1],boxes[i][3], false) );
-        seg[boxes[i][4]].push_back(gsVSegment<index_t>(boxes[i][2],boxes[i][1],boxes[i][3], false) );
+        seg[boxes[i][4]].push_back(gsVSegment<unsigned int>(boxes[i][0],boxes[i][1],boxes[i][3], false) );
+        seg[boxes[i][4]].push_back(gsVSegment<unsigned int>(boxes[i][2],boxes[i][1],boxes[i][3], false) );
     }
 
     // Process vertical lines from each level separately
-    std::vector< std::vector<std::vector< std::vector<index_t > > > > result;
+    std::vector< std::vector<std::vector< std::vector<unsigned int > > > > result;
     for(unsigned int i = 0; i < m_maxInsLevel+1; i++)
     {
        //result.push_back(getPoly(seg[i]));
@@ -1322,7 +1322,7 @@ gsHDomain<d,T>::getPolylines() const
 
 
 template<short_t d, class T>
-std::vector<std::vector< std::vector<index_t > > > gsHDomain<d,T>::getPolylinesSingleLevel(std::vector<gsVSegment<T> >& seg) const
+std::vector<std::vector< std::vector<unsigned int > > > gsHDomain<d,T>::getPolylinesSingleLevel(std::vector<gsVSegment<T> >& seg) const
 {
     // For didactic purposes the interior of the function has been refined into two procedures
     // (overal length of the older version was intimidating and people would not like to read it then =)).
@@ -1331,13 +1331,13 @@ std::vector<std::vector< std::vector<index_t > > > gsHDomain<d,T>::getPolylinesS
     std::list< std::list< gsVSegment< T > > > vert_seg_lists;
 
     // For returning
-    std::vector< std::vector< std::vector<index_t > > > result;
+    std::vector< std::vector< std::vector<unsigned int > > > result;
 
     // This magically sorts seg according to x value
     std::sort( seg.begin(), seg.end() );
 
     // Put stuff from seg into vert_seg_lists
-    std::list< gsVSegment< index_t > > segs_x; // segments with the same particular x coord
+    std::list< gsVSegment< unsigned int > > segs_x; // segments with the same particular x coord
     for( typename std::vector< gsVSegment< T > >::const_iterator it_seg = seg.begin(); it_seg != seg.end(); ++it_seg )
     {
         if( segs_x.empty() || (*it_seg).getX() == segs_x.front().getX() )
@@ -1406,8 +1406,7 @@ void gsHDomain<d,T>::getRidOfOverlaps( std::list< std::list< gsVSegment<T> > >& 
 }
 
 template <short_t d, class T>
-void gsHDomain<d,T>::sweeplineConnectAndMerge( std::vector< std::vector< std::vector<index_t> > >& result,
-                                               std::list< std::list< gsVSegment<T> > >& vert_seg_lists ) const
+void gsHDomain<d,T>::sweeplineConnectAndMerge( std::vector< std::vector< std::vector<unsigned int> > >& result, std::list< std::list< gsVSegment<T> > >& vert_seg_lists ) const
 {
     /*========================
      * Algorithm description:
@@ -1438,7 +1437,7 @@ void gsHDomain<d,T>::sweeplineConnectAndMerge( std::vector< std::vector< std::ve
 
         act_poly.erase( act_poly.begin(), act_poly.end() );
 
-        gsAAPolyline<index_t> curr_poly;
+        gsAAPolyline<unsigned int> curr_poly;
         while( !poly_queue.empty() )
         {
             curr_poly = poly_queue.front();
@@ -1449,7 +1448,7 @@ void gsHDomain<d,T>::sweeplineConnectAndMerge( std::vector< std::vector< std::ve
                 if( curr_poly.canBeExtended( *it_seg) )
                 {
                     if( curr_poly.almostClosed() )
-                        result.push_back( curr_poly.writeParasolid () );
+                        result.push_back( curr_poly.writeParasolidUnsigned () );
                     else
                         poly_queue.push( curr_poly ); // This is the prevention of wrong behaviour in kissing vertices (cf. Remark above).
 
@@ -1498,7 +1497,7 @@ void gsHDomain<d,T>::sweeplineConnectAndMerge( std::vector< std::vector< std::ve
         {
             if( (*it).almostClosed() )
             {
-                result.push_back( (*it).writeParasolid() );
+                result.push_back( (*it).writeParasolidUnsigned() );
                 act_poly.erase( it++ );
             }
             else
@@ -1511,40 +1510,40 @@ void gsHDomain<d,T>::sweeplineConnectAndMerge( std::vector< std::vector< std::ve
 
 
 template<short_t d, class T> inline void
- gsHDomain<d,T>::computeFinestIndex( gsVector<index_t,d> const & index,
+ gsHDomain<d,T>::computeFinestIndex( gsVector<unsigned,d> const & index,
                                      unsigned lvl,
-                                     gsVector<index_t,d> & result ) const
+                                     gsVector<unsigned,d> & result ) const
 {
-    for ( short_t i = 0; i!=d; ++i )
+    for ( unsigned i = 0; i!=d; ++i )
         result[i] = index[i] << (m_maxInsLevel-lvl) ;
 }
 
 template<short_t d, class T> inline void
- gsHDomain<d,T>::computeLevelIndex( gsVector<index_t,d> const & index,
+ gsHDomain<d,T>::computeLevelIndex( gsVector<unsigned,d> const & index,
                                     unsigned lvl,
-                                    gsVector<index_t,d> & result ) const
+                                    gsVector<unsigned,d> & result ) const
 {
-    for ( short_t i = 0; i!=d; ++i )
+    for ( unsigned i = 0; i!=d; ++i )
         result[i] = index[i] >> (m_maxInsLevel-lvl) ;
 }
 
 template<short_t d, class T> inline void
- gsHDomain<d,T>::local2globalIndex( gsVector<index_t,d> const & index,
+ gsHDomain<d,T>::local2globalIndex( gsVector<unsigned,d> const & index,
                     unsigned lvl,
-                    gsVector<index_t,d> & result
+                    gsVector<unsigned,d> & result
                     ) const
 {
-    for ( short_t i = 0; i!=d; ++i )
+    for ( unsigned i = 0; i!=d; ++i )
         result[i] = index[i] << (m_indexLevel-lvl) ;
 }
 
 template<short_t d, class T> inline void
- gsHDomain<d,T>::global2localIndex( gsVector<index_t,d> const & index,
+ gsHDomain<d,T>::global2localIndex( gsVector<unsigned,d> const & index,
                                         unsigned lvl,
-                                        gsVector<index_t,d> & result
+                                        gsVector<unsigned,d> & result
     ) const
 {
-    for ( short_t i = 0; i!=d; ++i )
+    for ( unsigned i = 0; i!=d; ++i )
         result[i] = index[i] >> (this->m_indexLevel-lvl) ;
 }
 }// end namespace gismo

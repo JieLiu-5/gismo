@@ -395,18 +395,54 @@ inline void computeAuxiliaryData (gsMapData<T> & InOut, int d, int n)
 template <class T>
 void gsFunction<T>::computeMap(gsMapData<T> & InOut) const
 {
+    gsInfo << "gsFunction<T>::computeMap()\n";
+//     gsInfo << "    typeid: " << typeid(*this).name() << "\n";
+    
     // Fill function data
     if (InOut.flags & NEED_GRAD_TRANSFORM || InOut.flags & NEED_MEASURE    ||
             InOut.flags & NEED_NORMAL         || InOut.flags & NEED_OUTER_NORMAL)
+    {
         InOut.flags = InOut.flags | NEED_GRAD;
+//         gsInfo << "flags of mapData absorbing NEED_GRAD, which is " << NEED_GRAD << ", resulting in " << InOut.flags << "\n";
+    }
+    
+//     gsInfo << "\n";
+//     gsInfo << "flags of mapData: " << InOut.flags << "\n";
+//     
+//     gsInfo << "\n";
 
-    this->compute(InOut.points, InOut);
+    gsInfo << "support: \n";
+    gsInfo << this->support();
+    
+    
+    
+    gsInfo << "\n";
+    this->compute(InOut.points, InOut);                      // a function defined in gsFunctionSet.hpp
+                                                             // the contribution of control points is considered after this function, even though unclear about the procedure
+                                                             // flags of InOut changes after entering compute(), and recovers after getting out of this function
+    
+    gsInfo << "\n";
+    gsInfo << "after gsFunctionSet<T>::compute()\n";
+//     gsInfo << "flags of InOut: " << InOut.flags << "\n";
+    gsInfo << "mapData.values: \n";            
+    for(unsigned int i=0; i< InOut.values.size(); i++)       // for the value, first row denotes contribution of the x coordinate, second row denotes contribution of the y coordinate
+    {                                                        // for the gradient, first two rows denote contribution of the x coordinates, one is x-derivative, the another is y-derivative
+        gsInfo << "[" << i << "]: \n";                       //                   second two rows denote contribution of the y coordinates, Jun. 9, 2020
+        gsInfo << InOut.values[i] << "\n";
+    }
+    gsInfo << "mapData.measures: \n";            
+    gsInfo << InOut.measures << "\n";
+    
     
     // Fill extra data
     std::pair<short_t, short_t> Dim = this->dimensions();
 
     GISMO_ASSERT(Dim.first<10,             "Domain dimension is too big");
     GISMO_ASSERT(Dim.first<=Dim.second, "Singular map: target dimension is lower then the domain dimension");
+    
+//     gsInfo << "\n";
+//     gsInfo << "argu of switch: " << 10 * Dim.second + Dim.first << "\n";
+    
     switch (10 * Dim.second + Dim.first)
     {
     // curves
@@ -431,6 +467,11 @@ void gsFunction<T>::computeMap(gsMapData<T> & InOut) const
     case 44: computeAuxiliaryData<T,4,4>(InOut, Dim.first, Dim.second); break;
     default: computeAuxiliaryData<T,-1,-1>(InOut, Dim.first, Dim.second); break;
     }
+    
+/*    gsInfo << "\n";
+    gsInfo << "md.values(" << InOut.values.size() << " in total): \n"
+            << "[0]: \n" << InOut.values[0] << "\n"                                  
+            << "[1]: \n" << InOut.values[1] << "\n";    */    
 
 }
 

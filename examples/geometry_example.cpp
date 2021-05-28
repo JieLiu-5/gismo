@@ -15,6 +15,7 @@
 #include <gismo.h>
 
 using namespace gismo;
+using namespace std;
 
 
 // Returns the string with the size of a matrix.
@@ -31,7 +32,10 @@ std::string size(const gsMatrix<T>& matrix)
 int main(int argc, char* argv[])
 {
 
-    std::string input("surfaces/simple.xml");
+//     std::string input("surfaces/simple.xml");
+    
+    std::string input("domain1d/bspline1d_01.xml");
+    
     std::string output("");
 
     gsCmdLine cmd("Tutorial on gsGeometry class.");
@@ -43,12 +47,21 @@ int main(int argc, char* argv[])
     // reading the geometry
     // ======================================================================
 
+    cout << "creating an object of gsFileData" << endl;
+    
     gsFileData<> fileData(input);
 
+    
+    cout << "creating a pointer of gsGeometry" << endl;
+    
+    
     gsGeometry<>::uPtr pGeom;
-    if (fileData.has< gsGeometry<> >())
+    
+    cout << "initializing pGeom" << endl;
+    
+    if (fileData.has< gsGeometry<> >())                 // has() invokes getFirstNode as defined in gsFileData.h
     {
-        pGeom = fileData.getFirst< gsGeometry<> >();
+        pGeom = fileData.getFirst< gsGeometry<> >();                // here we have typename gsGeometry<>, for which tag is 'Geometry' and type is ""
     }
     else
     {
@@ -75,6 +88,8 @@ int main(int argc, char* argv[])
     //! [printing the geometry]
     gsInfo << "The file contains: \n" << *pGeom << "\n";
 
+    
+#if 1
     // G+Smo geometries contains basis and coefficients
     const gsBasis<>& basis = pGeom->basis();
     gsInfo << "\nBasis: \n" << basis << "\n";
@@ -110,7 +125,7 @@ int main(int argc, char* argv[])
     // ----------------------------------------------------------------------
 
     //! [values and derivatives]
-    gsMatrix<> u = 0.3 * support.col(0) + 0.7 * support.col(1);
+    gsMatrix<> u = 0.5 * support.col(0) + 0.6 * support.col(1);                     // unclear for u defined like this, Nov 23, 2019
     gsInfo << "u " << size(u) << ": \n" << u << "\n" << "\n";
 
     // geoDim x 1 matrix
@@ -144,6 +159,10 @@ int main(int argc, char* argv[])
     gsMesh<> mesh;
     pGeom->controlNet(mesh);
     //! [control net]
+    
+    
+    mesh.print(cout);
+    
 
     // ======================================================================
     // writing to paraview
@@ -174,7 +193,7 @@ int main(int argc, char* argv[])
     else
         gsInfo << "Done. No output created, re-run with --output <fn> to get a ParaView "
                   "file containing the solution.\n";
-
+#endif
     return 0;
 }
 

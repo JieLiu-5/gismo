@@ -46,6 +46,8 @@ public:
                  const gsFunction<T>           * = NULL)
     : gsPde<T>(domain,bc), m_rhs(rhs)
     {
+        gsInfo << "gsPoissonPde<T>::gsPoissonPde(), inheritating from gsPde<T>\n";
+        
         m_unknownDim.setOnes(1);
     }
 

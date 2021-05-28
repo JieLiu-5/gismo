@@ -94,7 +94,7 @@ public:
         }
 
         // Set to one quadrature point by default
-        m_quadrature.setNodes( gsVector<index_t>::Ones(d) );
+        m_quadrature.setNodes( gsVector<int>::Ones(d) );
 
         if (m_isGood)
             update();
@@ -162,12 +162,12 @@ public:
     }
 
     /// Returns the number of elements.
-    size_t numElements() const
+    index_t numElements() const
     {
-        size_t result = 1;
-        for (short_t i = 0; i < dir; ++i)
+        index_t result = 1;
+        for (int i = 0; i < dir; ++i)
             result *= breaks[i].size() - 1;
-        for (short_t i = dir+1; i < d; ++i)
+        for (int i = dir+1; i < d; ++i)
             result *= breaks[i].size() - 1;
         
         return result;
@@ -235,10 +235,10 @@ protected:
 private:
 
     // the dimension of the parameter space
-    short_t d;
+    int d;
 
     // Boundary parameters
-    short_t  dir;
+    int  dir;
     bool par;
     unsigned tindex;
 

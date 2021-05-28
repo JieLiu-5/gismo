@@ -35,7 +35,8 @@ public:
     gsGaussRule(gsVector<index_t> const & numNodes, 
                 const unsigned digits = 0 )
     { 
-        gsGaussRule::setNodes(numNodes, digits);
+        gsInfo << "gsGaussRule<T>::gsGaussRule()\n";
+        gsGaussRule::setNodes(numNodes, digits);                // defined in gsGaussRule.hpp
     }
 
     /// Initialize a 1D Gauss quadrature rule with \a numNodes
@@ -46,7 +47,7 @@ public:
 
     /// Initialize a tensor-product Gauss quadrature rule for \a basis
     /// using quA *deg_i + quB nodes (direction-wise)
-    gsGaussRule(const gsBasis<T> & basis, const T quA, const index_t quB, short_t fixDir = -1);
+    gsGaussRule(const gsBasis<T> & basis, const T quA, const int quB, short_t fixDir = -1);
     //const unsigned digits = std::numeric_limits<T>::digits10 );
 
     /// Initialize a tensor-product Gauss quadrature rule for \a basis
@@ -66,7 +67,7 @@ public:
 
 private:
 
-    void init(const gsBasis<T> & basis, const T quA, const index_t quB, short_t fixDir);
+    void init(const gsBasis<T> & basis, const T quA, const int quB, short_t fixDir);
     
     /**
      * @brief Computes the Gauss quadrature rule with \a n nodes in the interval [-1,1].

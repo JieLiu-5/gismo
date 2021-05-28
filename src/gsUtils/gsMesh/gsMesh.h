@@ -84,13 +84,7 @@ public:
         return *this;
     }
 
-    /// Create a mesh corresponding to the parametric domain of the
-    /// basis \a basis.
-    /// @param basis Basis whose parametric domain should be meshed.
-    /// @param midPts Number of intermediate vertices to be inserted
-    /// to each element side. Cf. gsMesh::addLine(VertexHandle,
-    /// VertexHandle, int).
-    explicit gsMesh(const gsBasis<T> & basis, int midPts = 0);
+    explicit gsMesh(const gsBasis<T> & basis, int n = 0);
 
     virtual ~gsMesh();
 
@@ -154,9 +148,9 @@ public:
     void addLine(gsMatrix<T> const & points);
 
     /// Inserts a straight line in the mesh, between \a v0 and \a v1,
-    /// with \a midPts intermediate vertices distributed linearly
-    /// between \a v0 and \a v1 (used for plotting).
-    void addLine(VertexHandle v0, VertexHandle v1, int midPts = 0);
+    /// with n intermediate edges distributed linearly between \a v0
+    /// and \a v1 (used for plotting)
+    void addLine(VertexHandle v0, VertexHandle v1, int n = 0);
 
     std::ostream &print(std::ostream &os) const;
 

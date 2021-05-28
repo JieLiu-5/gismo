@@ -9,7 +9,7 @@
     License, v. 2.0. If a copy of the MPL was not distributed with this
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-    Author(s): M. Kapl, G. Kiss, A. Mantzaflaris, D. Mokris
+    Author(s): M. Kapl, G. Kiss, A. Mantzaflaris
 */
 
 #pragma once
@@ -22,7 +22,8 @@ namespace gismo
 
 /**
   @brief 
-   Class for performing a least squares fit of a parametrized point cloud with a gsGeometry.
+   Class for performing a least squares fit to get a open/closed
+   B-Spline curve for some given data
     
    \ingroup Modeling
 **/
@@ -79,7 +80,7 @@ public:
     { 
         const size_t result=
             std::count_if(m_pointErrors.begin(), m_pointErrors.end(), 
-                          GS_BIND2ND(std::less<T>(), threshold));
+                          std::bind2nd(std::less<T>(), threshold));
         return result; 
     }
 
@@ -111,26 +112,6 @@ public:
     /// returns the points
     gsMatrix<T> returnPoints() const {return m_points;}
 
-    /// Sets constraints that the coefficients of the resulting
-    /// geometry have to conform to. More precisely, denoting the
-    /// coefficient vector by \a x, it enforces
-    ///  \a lhs * \a x = \a rhs.
-    void setConstraints(const gsSparseMatrix<T>& lhs, const gsMatrix<T>& rhs)
-    {
-	m_constraintsLHS = lhs;
-	m_constraintsRHS = rhs;
-    }
-
-    /// Sets constraints on that the coefficients of the resulting geometry have to conform to.
-    /// \param indices indices (in the coefficient vector) of the prescribed coefficients.
-    /// \param coefs prescribed coefficients.
-    void setConstraints(const std::vector<index_t>& indices,
-			const std::vector<gsMatrix<T> >& coefs);
-
-private:
-    /// Extends the system of equations by taking constraints into account.
-    void extendSystem(gsSparseMatrix<T>& A_mat, gsMatrix<T>& m_B);
-
 protected:
 
     /// the parameter values of the point cloud
@@ -153,18 +134,6 @@ protected:
 
     /// Minimum point-wise error
     T m_min_error;
-
-    /// Left hand-side of the constraints that the coefficients of the
-    /// resulting geometry have to conform to.
-    /// This corresponds to matrix D in Prautzch, Boehm, Paluszny:
-    /// Bezier and B-spline techniques, Section 4.7.
-    gsSparseMatrix<T> m_constraintsLHS;
-
-    /// Right hand-side of the constraints that the coefficients of the
-    /// resulting geometry have to conform to.
-    /// This corresponds to vector q in Prautzch, Boehm, Paluszny:
-    /// Bezier and B-spline techniques, Section 4.7.
-    gsMatrix<T>       m_constraintsRHS;
 
 private:
     //void applySmoothing(T lambda, gsMatrix<T> & A_mat);

@@ -17,6 +17,8 @@
 #include <gsAssembler/gsQuadrature.h>
 #include <gsAssembler/gsExprHelper.h>
 
+#include <fstream>
+
 namespace gismo
 {
 
@@ -28,7 +30,8 @@ template<class T>
 class gsExprAssembler
 {
 private:
-    typename gsExprHelper<T>::Ptr m_exprdata;
+    typename gsExprHelper<T>::Ptr m_exprdata;                       
+                                                                    
 
     gsOptionList m_options;
 
@@ -65,15 +68,22 @@ public:
     typedef typename gsExprHelper<T>::variable    variable;    ///< Space type
     typedef typename expr::gsFeSolution<T>        solution;    ///< Solution type
     */
+    
 public:
 
     /// Constructor
     /// \param _rBlocks Number of spaces for test functions
     /// \param _cBlocks Number of spaces for solution variables
-    gsExprAssembler(index_t _rBlocks = 1, index_t _cBlocks = 1)
-    : m_exprdata(gsExprHelper<T>::make()), m_options(defaultOptions()),
-      m_vrow(_rBlocks,nullptr), m_vcol(_cBlocks,nullptr)
-    { }
+    gsExprAssembler(int _rBlocks = 1, int _cBlocks = 1)
+    : m_exprdata(gsExprHelper<T>::make()), m_options(defaultOptions()),                             // pointers defined above
+      m_vrow(_rBlocks,nullptr), m_vcol(_cBlocks,nullptr)                                            
+    {
+        gsInfo << "gsExprAssembler<T>::gsExprAssembler()\n";
+               
+//         gsInfo << "executing m_exprdata->print() \n";
+//         m_exprdata->print();
+//         gsInfo << "\n";
+    }
 
     // The copy constructor replicates the same environemnt but does
     // not copy any matrix data
@@ -130,21 +140,32 @@ public:
 
     /// @brief Writes the resulting vector in \a out. The internal data is moved.
     void rhs_into(gsMatrix<T> & out) { out = give(m_rhs); }
-
+    
     /// \brief Sets the domain of integration.
     /// \warning Must be called before any computation is requested
     void setIntegrationElements(const gsMultiBasis<T> & mesh)
-    { m_exprdata->setMultiBasis(mesh); }
+    { 
+        gsInfo << "gsExprAssembler<T>::setIntegrationElements()\n";
+        
+        m_exprdata->setMultiBasis(mesh); 
+    }
 
     /// \brief Returns the domain of integration
     const gsMultiBasis<T> & integrationElements() const
     { return m_exprdata->multiBasis(); }
 
-    const typename gsExprHelper<T>::Ptr exprData() const { return m_exprdata; }
+    const typename gsExprHelper<T>::Ptr exprData() const 
+    {
+//         gsInfo << "gsExprAssembler<T>::exprData()\n";
+        return m_exprdata; 
+    }
 
     /// Registers \a mp as an isogeometric geometry map and return a handle to it
     geometryMap getMap(const gsMultiPatch<T> & mp) //conv->tmp->error
-    { return m_exprdata->getMap(mp); }
+    { 
+        gsInfo << "gsExprAssembler<T>::getMap()\n";
+        return m_exprdata->getMap(mp);                                              // run getMap() of the previously created object of gsExprHelper<T>
+    }
 
     /// Registers \a g as an isogeometric geometry map and return a handle to it
     geometryMap getMap(const gsFunction<T> & g)
@@ -154,12 +175,17 @@ public:
     /// and return a handle to it
     space getSpace(const gsFunctionSet<T> & mp, index_t dim = 1, index_t id = 0)
     {
+        gsInfo << "gsExprAssembler<T>::getSpace()\n";
         //if multiBasisSet() then check domainDom
         GISMO_ASSERT(1==mp.targetDim(), "Expecting scalar source space");
         GISMO_ASSERT(static_cast<size_t>(id)<m_vrow.size(),
                      "Given ID "<<id<<" exceeds "<<m_vrow.size()-1 );
-        expr::gsFeSpace<T> & u = m_exprdata->getSpace(mp,dim);
+        
+        expr::gsFeSpace<T> & u = m_exprdata->getSpace(mp,dim);                      // initializing m_ptable
+        
+//         gsInfo << "u.setId()\n";
         u.setId(id);
+//         gsInfo << "m_vrow\n";
         m_vrow[id] = m_vcol[id] = &u;
         return u;
     }
@@ -209,7 +235,10 @@ public:
 
     /// Registers \a func as a variable defined on \a G and returns a handle to it
     variable getCoeff(const gsFunctionSet<T> & func, geometryMap G)
-    { return m_exprdata->getVar(func,G); }
+    { 
+        gsInfo << "gsExprAssembler<T>::getCoeff()\n";
+        return m_exprdata->getVar(func,G);                                              // initializing m_itable
+    }
 
     /// \brief Registers a representation of a solution variable from
     /// space \a s, based on the vector \a cf.
@@ -219,6 +248,7 @@ public:
     /// corresponds to a function in the space \a s
     solution getSolution(space s, gsMatrix<T> & cf) const
     {
+//         gsInfo << "gsExprAssembler<T>::getSolution()\n";
         // todo: if (m_exprdata->isSpace(u));
         //space s = static_cast<space>(u);
         return solution(s, cf);
@@ -228,27 +258,39 @@ public:
 
     element getElement() const { return m_element; }
 
-    void computeDirichletDofs2(short_t unk);
+    void computeDirichletDofs2(int unk);
     void computeDirichletDofsIntpl2(const expr::gsFeSpace<T> & u);
     void computeDirichletDofsL2Proj(const expr::gsFeSpace<T> & u);
-    void setFixedDofVector(gsMatrix<T> & dof, short_t unk = 0);
-    void setFixedDofs(const gsMatrix<T> & coefMatrix, short_t unk = 0, size_t patch = 0);
+    void setFixedDofVector(gsMatrix<T> & dof, int unk = 0);
+    void setFixedDofs(const gsMatrix<T> & coefMatrix, int unk = 0, int patch = 0);
 
     /// \brief Initializes the sparse system (sparse matrix and rhs)
     void initSystem()
     {
+        gsInfo << "gsExprAssembler<T>::initSystem()\n";
         // Check spaces.nPatches==mesh.patches
+        
         initMatrix();
+        
         m_rhs.setZero(numDofs(), 1);
 
         for (size_t i = 0; i!= m_vcol.size(); ++i)
+        {
             computeDirichletDofs2(i);
+        }
     }
 
     /// \brief Initializes the sparse matrix only
     void initMatrix()
     {
+//         gsInfo << "gsExprAssembler<T>::initMatrix()\n";
+        
         resetDimensions();
+        
+//         gsInfo << "numTestDofs(): " << numTestDofs() << ", "
+//                << "numDofs(): " << numDofs()
+//                << "\n";
+        
         m_matrix = gsSparseMatrix<T>(numTestDofs(), numDofs());
 
         if ( 0 == m_matrix.rows() || 0 == m_matrix.cols() )
@@ -263,9 +305,14 @@ public:
             const short_t dim = m_exprdata->multiBasis().domainDim();
             for (short_t i = 0; i != dim; ++i)
                 nz *= bdA * m_exprdata->multiBasis().maxDegree(i) + bdB;
+            
+//             gsInfo << "nz: " << nz << "\n";
 
             m_matrix.reservePerColumn(numBlocks()*cast<T,index_t>(nz*(1.0+bdO)) );
         }
+        
+//         gsInfo << "m_matrix.rows(): " << m_matrix.rows() << ", cols(): " << m_matrix.cols() << "\n";
+        
     }
 
     /// \brief Initializes the right-hand side vector only
@@ -300,7 +347,11 @@ public:
     }
 
     /// Set the assembler options
-    void setOptions(gsOptionList opt) { m_options = opt; } // gsOptionList opt
+    void setOptions(gsOptionList opt)
+    {
+        gsInfo << "gsExprAssembler<T>::setOptions()\n";
+        m_options = opt;
+    } // gsOptionList opt
     // .swap(opt) todo
 
 #   if(__cplusplus >= 201103L || _MSC_VER >= 1600 || defined(__DOXYGEN__))
@@ -426,16 +477,41 @@ private:
 
 #if __cplusplus >= 201103L || _MSC_VER >= 1600 // c++11
     template <class op, class E1>
-    void _apply(op _op, const expr::_expr<E1> & firstArg) {_op(firstArg);}
+    void _apply(op _op, const expr::_expr<E1> & firstArg) 
+    {
+        gsInfo << "gsExprAssembler<T>::_apply() 1\n";
+        
+        gsInfo << "\n";
+        _op(firstArg);                                      // we print the name of the argument upon calling the operator
+    }
     template <class op, class E1, class... Rest>
-    void _apply(op _op, const expr::_expr<E1> & firstArg, Rest... restArgs)
-    { _op(firstArg); _apply<op>(_op, restArgs...); }
+    void _apply(op _op, const expr::_expr<E1> & firstArg, Rest... restArgs)             
+    {                                                                                   // used in line 817, 890
+                                                                                        // _op is _setFlag, an object of __setFlag, in line 827
+                                                                                        //        ee, an object of _eval, when assembling contributions of the element, see line 898
+                                                                                        
+        gsInfo << "gsExprAssembler<T>::_apply() 2\n";
+        gsInfo << "    typeid of _op: " << typeid(_op).name() << "\n";
+//                << "    typeid of firstArg: " << typeid(firstArg).name() << "\n";
+               
+        
+        gsInfo << "\n";
+        _op(firstArg);                                                                  // _op deals with the first argument                                   
+        
+        gsInfo << "\n";
+        _apply<op>(_op, restArgs...);                                                   // _op goes to the restArgs
+        
+    }
 #endif
 
     struct __setFlag
     {
         template <typename E> void operator() (const gismo::expr::_expr<E> & v)
-        { v.setFlag(); }
+        { 
+            gsInfo << "__setFlag::operator() \n";
+//                    << "    typeid: " << typeid(v).name() << "\n";
+            v.setFlag(); 
+        }
 
         void operator() (const expr::_expr<expr::gsNullExpr<T> > &) {}
     } _setFlag;
@@ -459,21 +535,69 @@ private:
               const gsVector<>  & _quWeights)
         : m_matrix(_matrix), m_rhs(_rhs),
           m_quWeights(_quWeights), m_patchInd(0)
-        { }
+        { 
+            gsInfo << "_eval<T>::_eval()\n";
+        }
 
-        void setPatch(const index_t p) { m_patchInd=p; }
+        void setPatch(const index_t p) 
+        { 
+//             gsInfo << "_eval::setPatch()\n";
+            m_patchInd=p; 
+        }
 
-        template <typename E> void operator() (const gismo::expr::_expr<E> & ee)
+        template <typename E> void operator() (const gismo::expr::_expr<E> & ee)      // ee represents each argument received in gsExprAssembler<T>::assemble(), instead of an object of _eval created on line 873
         {
+            gsInfo << "_eval::operator()\n";
+            gsInfo << "    argument: ";
+            ee.print(gsInfo);
+            gsInfo << ", isMatrix()?: " << E::isMatrix() << "\n";
+            
+//             gsInfo << "    typeid of the argument: " << typeid(ee).name() << "\n";
+//             gsInfo << "    typeid of the template of the argument: " << typeid(E).name();
+            
+            gsInfo << "\n";
+            gsInfo << "working on localMat: \n";
+            
             // ------- Compute  -------
             const T * w = m_quWeights.data();
+            
             localMat.noalias() = (*w) * ee.eval(0);
+            
+            gsInfo << "\n";
+            gsInfo << "quad 0\n";
+            gsInfo << "*w: " << *w << "\n";
+            gsInfo << "ee.eval(0)\n";
+            gsInfo << ee.eval(0);    
+            
+            gsInfo << "\n\n";
+            gsInfo << "localMat:\n";
+            gsInfo << localMat << "\n";
+            
+            gsInfo << "\n";
             for (index_t k = 1; k != m_quWeights.rows(); ++k)
+            {
+                gsInfo << "quad " << k << "\n";
                 localMat.noalias() += (*(++w)) * ee.eval(k);
-
+                
+                gsInfo << "*w: " << *w << "\n";
+                gsInfo << "ee.eval(" << k << ")\n";
+                gsInfo << ee.eval(k);
+                
+                gsInfo << "\n\n";
+                gsInfo << "localMat:\n";
+                gsInfo << localMat << "\n\n";                
+            }
+            
+            gsInfo << "quads finished\n";
+            
+            
             //  ------- Accumulate  -------
+            
+            gsInfo << "\n";
             if (E::isMatrix())
+            {
                 push<true>(ee.rowVar(), ee.colVar(), m_patchInd);
+            }
             else
                 push<false>(ee.rowVar(), ee.colVar(), m_patchInd);
         }// operator()
@@ -486,21 +610,31 @@ private:
                                           //const expr::gsFeSpace<T> & u,
                                           const index_t patchInd)
         {
+            gsInfo << "_eval::push()\n";
+            if(isMatrix)
+            {
+                gsInfo << "    true\n";
+            }else
+            {
+                gsInfo << "    false\n";
+            }
+            
             const index_t cd            = u.dim();
             const index_t rd            = v.dim();
             const gsDofMapper  & colMap = static_cast<const expr::gsFeSpace<T>&>(u).mapper();
             const gsDofMapper  & rowMap = static_cast<const expr::gsFeSpace<T>&>(v).mapper();
-
-            const gsMatrix<index_t> & colInd0 = u.data().actives;
-            const gsMatrix<index_t> & rowInd0 = v.data().actives;
+            const gsMatrix<unsigned> & colInd0 = u.data().actives;
+            const gsMatrix<unsigned> & rowInd0 = v.data().actives;
             const gsMatrix<T>  & fixedDofs = static_cast<const expr::gsFeSpace<T>&>(u).fixedPart();
 
+//             gsInfo << "u.source().support(): " << u.source().support() << "\n";
+            
             for (index_t r = 0; r != rd; ++r)
             {
                 const index_t rls = r * rowInd0.rows();     //local stride
                 for (index_t i = 0; i != rowInd0.rows(); ++i)
                 {
-                    const index_t ii = rowMap.index(rowInd0.at(i),patchInd,r); // N_i
+		  const index_t ii = rowMap.index(rowInd0.at(i),patchInd,r); // N_i
                     if ( rowMap.is_free_index(ii) )
                     {
                         for (index_t c = 0; c != cd; ++c)
@@ -531,14 +665,21 @@ private:
                                 }
                             }
                             else
-                            {
                                 m_rhs.row(ii) += localMat.row(rls+i);
-                            }
                         }
                     }
                 }
             }
+            
+            gsInfo << "\n";
+            gsInfo << "at the end of push(): \n";
+            gsInfo << "m_matrix:\n";
+            gsInfo << m_matrix;
+            gsInfo << "m_rhs:\n";
+            gsInfo << m_rhs << "\n";   
+            
         }//push
+        
 
     };
 
@@ -558,8 +699,10 @@ gsOptionList gsExprAssembler<T>::defaultOptions()
 }
 
 template<class T>
-void gsExprAssembler<T>::computeDirichletDofs2(short_t unk)
+void gsExprAssembler<T>::computeDirichletDofs2(int unk)
 {
+//     gsInfo << "gsExprAssembler<T>::computeDirichletDofs2()\n";
+    
     expr::gsFeSpace<T> & u = *m_vcol[unk];
 
     //if ( m_options.getInt("DirichletStrategy") == dirichlet::nitsche)
@@ -600,18 +743,19 @@ void gsExprAssembler<T>::computeDirichletDofs2(short_t unk)
     {
         if(it->unknown == unk)
         {
-            const index_t i  = mbasis[it->patch].functionAtCorner(it->corner);
-            const index_t ii = mapper.bindex( i , it->patch );
+            const int i  = mbasis[it->patch].functionAtCorner(it->corner);
+            const int ii = mapper.bindex( i , it->patch );
             u.fixedPart().row(ii).setConstant(it->value);
         }
         else
             continue;
     }
     */
+//     gsInfo << "done for computeDirichletDofs2()\n";
 }
 
 template<class T>
-void gsExprAssembler<T>::setFixedDofVector(gsMatrix<T> & vals, short_t unk)
+void gsExprAssembler<T>::setFixedDofVector(gsMatrix<T> & vals, int unk)
 {
     expr::gsFeSpace<T> & u = *m_vcol[unk];
     gsMatrix<T>        & fixedDofs = const_cast<expr::gsFeSpace<T>&>(u).fixedPart();
@@ -624,12 +768,12 @@ void gsExprAssembler<T>::setFixedDofVector(gsMatrix<T> & vals, short_t unk)
 }
 
 template<class T>
-void gsExprAssembler<T>::setFixedDofs(const gsMatrix<T> & coefMatrix, short_t unk, size_t patch)
+void gsExprAssembler<T>::setFixedDofs(const gsMatrix<T> & coefMatrix, int unk, int patch)
 {
     GISMO_ASSERT( m_options.getInt("DirichletValues") == dirichlet::user, "Incorrect options");
 
     expr::gsFeSpace<T> & u = *m_vcol[unk];
-    //const index_t dirStr = m_options.getInt("DirichletStrategy");
+    //const int dirStr = m_options.getInt("DirichletStrategy");
     const gsMultiBasis<T> & mbasis = *dynamic_cast<const gsMultiBasis<T>* >(&(u).source());
 
     //const gsBoundaryConditions<> & bbc = u.hasBc() ? u.bc() : gsBoundaryConditions<>();
@@ -654,11 +798,11 @@ void gsExprAssembler<T>::setFixedDofs(const gsMatrix<T> & coefMatrix, short_t un
     for ( typename bcRefList::const_iterator it =  u.bc().dirichletBegin();
           it != u.bc().dirichletEnd()  ; ++it )
     {
-        const index_t k = it->patch();
+        const int k = it->patch();
         if ( k == patch )
         {
             // Get indices in the patch on this boundary
-            const gsMatrix<index_t> boundary =
+            const gsMatrix<unsigned> boundary =
                     mbasis[k].boundary(it->side());
 
             //gsInfo <<"Setting the value for: "<< boundary.transpose() <<"\n";
@@ -667,7 +811,7 @@ void gsExprAssembler<T>::setFixedDofs(const gsMatrix<T> & coefMatrix, short_t un
             {
                 // Note: boundary.at(i) is the patch-local index of a
                 // control point on the patch
-                const index_t ii  = mapper.bindex( boundary.at(i) , k );
+                const int ii  = mapper.bindex( boundary.at(i) , k );
 
                 fixedDofs.row(ii) = coefMatrix.row(boundary.at(i));
             }
@@ -677,6 +821,8 @@ void gsExprAssembler<T>::setFixedDofs(const gsMatrix<T> & coefMatrix, short_t un
 
 template<class T> void gsExprAssembler<T>::resetDimensions()
 {
+//     gsInfo << "gsExprAssembler<T>::resetDimensions()\n";
+    
     for (size_t i = 0; i!=m_vcol.size(); ++i)
     {
         GISMO_ASSERT(NULL!=m_vcol[i], "The assembler spaces where not set.");
@@ -702,56 +848,183 @@ template<class T> void gsExprAssembler<T>::resetDimensions()
 template<class T>
 #if(__cplusplus >= 201103L || _MSC_VER >= 1600 || defined(__DOXYGEN__)) // c++11
 template<class... expr>
-void gsExprAssembler<T>::assemble(expr... args)
+void gsExprAssembler<T>::assemble(expr... args)                       // invoked
 #else
     template <class E1, class E2, class E3, class E4, class E5>
     void gsExprAssembler<T>::assemble( const expr::_expr<E1> & a1, const expr::_expr<E2> & a2,
     const expr::_expr<E3> & a3, const expr::_expr<E4> & a4, const expr::_expr<E5> & a5)
 #endif
 {
+//     gsInfo << "\n";
+    gsInfo << "gsExprAssembler<T>::assemble()\n";  
+    gsInfo << "    size of args: " << sizeof...(args)
+           << "\n";
+//     
+//     gsInfo << "info of dbasis: " << "\n";
+//     
+//     for (unsigned int i = 0; i< m_exprdata->multiBasis().nBases(); i++)
+//     {
+//         gsInfo << "[" << i << "] \n" << m_exprdata->multiBasis().basis(i) << "\n";             
+//     }
+    
     GISMO_ASSERT(matrix().cols()==numDofs(), "System not initialized");
 
     // initialize flags
-    m_exprdata->initFlags(SAME_ELEMENT|NEED_ACTIVE, SAME_ELEMENT);
+    
+//     gsInfo << "SAME_ELEMENT: " << SAME_ELEMENT << "\n";
+//     gsInfo << "NEED_ACTIVE: " << NEED_ACTIVE << "\n";
+    
+    m_exprdata->initFlags(SAME_ELEMENT|NEED_ACTIVE, SAME_ELEMENT);                      // m_exprdata defined in line 31, a pointer to gsExprHelper<T>
+                                                                                        // set flags for mapData, mutData, m_ptable, m_itable
+//     m_exprdata->print_flags();
+    
+    gsInfo << "\n";
 #   if __cplusplus >= 201103L || _MSC_VER >= 1600
-    _apply(_setFlag, args...);
+    {
+//         gsInfo << "_apply(_setFlag)\n";
+        _apply(_setFlag, args...);                                                      // _apply() defined in line 478, a loop for applying the first argument on the following arguments
+                                                                                        // _setFlag in line 514
+    }
+
+//     m_exprdata->print_flags();                                                          
+                                                                                        // not clear about the origin of the current mapData.flags 
+    
     //_apply(_printExpr, args...);
 #   else
     _setFlag(a1);_setFlag(a1);_setFlag(a2);_setFlag(a4);_setFlag(a5);
 #   endif
+    
+    
     gsQuadRule<T> QuRule;  // Quadrature rule
     gsVector<T> quWeights; // quadrature weights
 
-    _eval ee(m_matrix, m_rhs, quWeights);
+    gsInfo << "\n";
+    _eval ee(m_matrix, m_rhs, quWeights);                             // _eval defined in line 532
+                                                                      // references in this object referring to the corresponding arguments
+                                                                      // m_matrix, m_rhs, objects of gsSparseMatrix<T> and gsMatrix<T>, respectively, see line 38
 
+    gsInfo << "\n";
     for (unsigned patchInd = 0; patchInd < m_exprdata->multiBasis().nBases(); ++patchInd)
     {
-        ee.setPatch(patchInd);
-        QuRule = gsQuadrature::get(m_exprdata->multiBasis().basis(patchInd), m_options);
-
+        gsInfo << "patch " << patchInd << "\n";
+        
+        ee.setPatch(patchInd);                                         // line 548
+                                                                       // m_patchInd in _eval equal to patchInd;
+        
+//         gsInfo << "\n";
+        QuRule = gsQuadrature::get(m_exprdata->multiBasis().basis(patchInd), m_options);                // forming coordinates and weights of quadrature points on an unit cell
+                                                                                                        // i.e. setting the values of m_nodes and m_weights in gsQuadRule.h
+        
+        gsInfo << "\n";
+        gsInfo << "referenceNodes: \n";
+        gsInfo << QuRule.referenceNodes();
+        
+        gsInfo << "\n";
+        gsInfo << "referenceWeights: \n";
+        gsInfo << QuRule.referenceWeights();
+        
+//         gsInfo << "\n";
         // Initialize domain element iterator for current patch
         typename gsBasis<T>::domainIter domIt =  // add patchInd to domainiter ?
             m_exprdata->multiBasis().basis(patchInd).makeDomainIterator();
         m_element.set(*domIt);
 
+        gsInfo << "\n\n";
+//         gsInfo << "(iterating over each domain)\n";       
+        unsigned int id_domain = 0;    
+        
+        std::ofstream fid_point;
+        fid_point.open("bspline_fe_points.txt", std::ios::trunc);        
+        
         // Start iteration over elements of patchInd
-        for (; domIt->good(); domIt->next() )
+        for (; domIt->good(); domIt->next() )                // domIt->next()
         {
+            gsInfo << "############################################ id_domain: " << id_domain++ << "\n";
+            
+            gsInfo << "  lowerCorner: "                               // knot vector controls the coordinate
+                << domIt->lowerCorner() 
+                << "\n"
+                << "  upperCorner: " 
+                << domIt->upperCorner() 
+                << "\n";
+                
             // Map the Quadrature rule to the element
-            QuRule.mapTo( domIt->lowerCorner(), domIt->upperCorner(),
-                          m_exprdata->points(), quWeights);
+            QuRule.mapTo( domIt->lowerCorner(), domIt->upperCorner(),   
+                          m_exprdata->points(), quWeights);                 // forming coordinates and weights of quadrature points on a physical cell
+                                                                            // points() returning mapData.points
+            
+            gsInfo << "\n";
+            gsInfo << "points and weights of the physical cell: \n";
+            gsInfo << "points: \n";
+            gsInfo << m_exprdata->points();
+            gsInfo << "\n";
+            gsInfo << "weights: \n";
+            gsInfo << quWeights;
+                                
+            for (int i = 0; i!=m_exprdata->points().cols(); ++i)
+            {
+                fid_point << m_exprdata->points()[i] << " ";
+            }
+            fid_point << "\n";                                
+            
+            std::ofstream fid_weight;
+            fid_weight.open("bspline_fe_weights.txt", std::ios::trunc);
+                                
+            for (int i = 0; i!=quWeights.rows(); ++i)
+            {
+                fid_weight << quWeights[i] << " ";
+            }
+            fid_weight << "\n";                    
+            fid_weight.close();            
+            
+//             gsInfo << "m_exprdata->print(): \n";
+//             m_exprdata->print();
 
+            gsInfo << "\n\n";
             // Perform required pre-computations on the quadrature nodes
-            m_exprdata->precompute(patchInd);
+            m_exprdata->precompute(patchInd, id_domain);                                   // dealing with mapData, m_ptable, m_itable
             //m_exprdata->precompute(QuRule, *domIt); // todo
-
+            
+            
+            
+            
+            gsInfo << "\n";
+            gsInfo << "before _apply()\n";
+            gsInfo << "m_matrix:\n";
+            gsInfo << m_matrix;
+            gsInfo << "m_rhs:\n";
+            gsInfo << m_rhs << "\n";
+            
+            gsInfo << "\n";
             // Assemble contributions of the element
 #           if __cplusplus >= 201103L || _MSC_VER >= 1600
-            _apply(ee, args...);
+            {
+//                 gsInfo << "_apply(ee, args...)\n";
+                _apply(ee, args...);                                            // ee is passed to a reference of expr::_expr<E1> in line 488
+            }
 #           else
-            ee(a1);ee(a2);ee(a3);ee(a4);ee(a5);
+            {
+                ee(a1);ee(a2);ee(a3);ee(a4);ee(a5);
+            }
 #           endif
+
+            gsInfo << "\n";
+            gsInfo << "after _apply for domain " << id_domain << "\n";
+            gsInfo << "m_matrix:\n";
+            gsInfo << m_matrix;
+            gsInfo << "m_rhs:\n";
+            gsInfo << m_rhs << "\n";
+            
+//             if (id_domain>0)
+//             {
+//                 break;
+//             }
+            
+            gsInfo << "\n";
+            
         }
+        
+        fid_point.close();  
     }
 
     m_matrix.makeCompressed();
@@ -901,8 +1174,8 @@ void gsExprAssembler<T>::assembleInterface_impl(const expr::_expr<E1> & exprLhs,
          it != iFaces.end(); ++it )
     {
         const boundaryInterface & iFace = *it;
-        const index_t patch1 = iFace.first() .patch;
-        //const index_t patch2 = iFace.second().patch;
+        const int patch1 = iFace.first() .patch;
+        //const int patch2 = iFace.second().patch;
         //const gsAffineFunction<T> interfaceMap(m_pde_ptr->patches().getMapForInterface(bi));
 
         QuRule = gsQuadrature::get(m_exprdata->multiBasis().basis(patch1),
@@ -943,6 +1216,8 @@ void gsExprAssembler<T>::assembleInterface_impl(const expr::_expr<E1> & exprLhs,
 template<class T> //
 void gsExprAssembler<T>::computeDirichletDofsIntpl2(const expr::gsFeSpace<T> & u)
 {
+//     gsInfo << "gsExprAssembler<T>::computeDirichletDofsIntpl2()\n";
+        
     const gsDofMapper  & mapper    = u.mapper();
     gsMatrix<T>        & fixedDofs = const_cast<expr::gsFeSpace<T>&>(u).fixedPart();
     fixedDofs.resize(mapper.boundarySize(), u.dim() );
@@ -958,34 +1233,34 @@ void gsExprAssembler<T>::computeDirichletDofsIntpl2(const expr::gsFeSpace<T> & u
     {
         const boundary_condition<T> * it = &iit->get();
 
-        const index_t k = it->patch();
+        const int k = it->patch();
         if( it->unknown()!=u.id() )
             continue;
         const gsBasis<T> & basis = mbasis[k];
 
         // Get dofs on this boundary
-        const gsMatrix<index_t> boundary = basis.boundary(it->side());
+        const gsMatrix<unsigned> boundary = basis.boundary(it->side());
 
         // If the condition is homogeneous then fill with zeros
         if ( it->isHomogeneous() )
         {
             for (index_t i=0; i!= boundary.size(); ++i)
             {
-                const index_t ii= mapper.bindex( boundary.at(i) , k );
+                const int ii= mapper.bindex( boundary.at(i) , k );
                 fixedDofs.row(ii).setZero();
             }
             continue;
         }
 
         // Get the side information
-        short_t dir = it->side().direction( );
+        int dir = it->side().direction( );
         index_t param = (it->side().parameter() ? 1 : 0);
 
         // Compute grid of points on the face ("face anchors")
         std::vector< gsVector<T> > rr;
         rr.reserve( parDim );
 
-        for ( short_t i=0; i < parDim; ++i)
+        for ( int i=0; i < parDim; ++i)
         {
             if ( i==dir )
             {
@@ -1030,7 +1305,7 @@ void gsExprAssembler<T>::computeDirichletDofsIntpl2(const expr::gsFeSpace<T> & u
         // Save corresponding boundary dofs
         for (index_t l=0; l!= boundary.size(); ++l)
         {
-            const index_t ii = mapper.bindex( boundary.at(l) , it->patch());
+	    const int ii = mapper.bindex( boundary.at(l) , it->patch());
             fixedDofs.row(ii) = dVals.row(l);
         }
     }
@@ -1047,7 +1322,7 @@ void gsExprAssembler<T>::computeDirichletDofsIntpl3(const expr::gsFeSpace<T> & u
     fixedDofs.resize(bsz, u.dim() );
     gsMatrix<T> pt, val, rhs;
     rhs.resize(bsz, u.dim() );
-    gsMatrix<index_t> act;
+    gsMatrix<unsigned> act;
     gsSparseMatrix<T> cmat(bsz, bsz);
     // todo: reserve
 
@@ -1066,20 +1341,20 @@ void gsExprAssembler<T>::computeDirichletDofsIntpl3(const expr::gsFeSpace<T> & u
                      "Given Dirichlet boundary function does not match problem dimension."
                      <<it->function()->targetDim()<<" != "<<u.dim()<<"\n");
 
-        const index_t k   = it->patch();
+        const int k   = it->patch();
         if( it->unknown()!=u.id() )
             continue;
         const gsBasis<T> & basis = mbasis[k];
 
         // Get dofs on this boundary
-        gsMatrix<index_t> boundary = basis.boundary(it->side());
+        gsMatrix<unsigned> boundary = basis.boundary(it->side());
 
         // If the condition is homogeneous then fill with zeros
         if ( it->isHomogeneous() )
         {
             for (index_t i=0; i!= boundary.size(); ++i)
             {
-                const index_t ii= mapper.bindex( boundary.at(i) , k );
+                const int ii= mapper.bindex( boundary.at(i) , k );
                 fixedDofs.row(ii).setZero();
             }
             continue;
@@ -1122,6 +1397,8 @@ void gsExprAssembler<T>::computeDirichletDofsIntpl3(const expr::gsFeSpace<T> & u
 template<class T>
 void gsExprAssembler<T>::computeDirichletDofsL2Proj(const expr::gsFeSpace<T>& u)
 {
+    gsInfo << "gsExprAssembler<T>::computeDirichletDofsL2Proj()\n";
+    
     GISMO_ASSERT(&m_exprdata->getMap().source() != NULL, "Geometry not set, call setMap(...) first!");
 
     const gsDofMapper & mapper = u.mapper();
@@ -1142,7 +1419,7 @@ void gsExprAssembler<T>::computeDirichletDofsL2Proj(const expr::gsFeSpace<T>& u)
     gsVector<T> quWeights;
 
     gsMatrix<T> rhsVals;
-    gsMatrix<index_t> globIdxAct;
+    gsMatrix<unsigned> globIdxAct;
     gsMatrix<T> basisVals;
 
     gsMapData<T> md(NEED_MEASURE | SAME_ELEMENT);
@@ -1156,10 +1433,10 @@ void gsExprAssembler<T>::computeDirichletDofsL2Proj(const expr::gsFeSpace<T>& u)
     {
         const boundary_condition<T> * iter = &iit->get();
 
-        const short_t unk = iter->unknown();
+        const int unk = iter->unknown();
         if(unk != u.id())
             continue;
-        const index_t patchIdx   = iter->patch();
+        const int patchIdx   = iter->patch();
         const gsBasis<T> & basis = mbasis[patchIdx];
 
         const gsGeometry<T> & patch = mp.patch(patchIdx);
@@ -1232,14 +1509,14 @@ void gsExprAssembler<T>::computeDirichletDofsL2Proj(const expr::gsFeSpace<T>& u)
                 {
                     // Each active boundary function/DOF in eltBdryFcts has...
                     // ...the above-mentioned "element-wise index"
-                    const index_t i = eltBdryFcts[i0];
+                    const unsigned i = eltBdryFcts[i0];
                     // ...the boundary index.
-                    const index_t ii = mapper.global_to_bindex(globIdxAct(i));
+                    const unsigned ii = mapper.global_to_bindex(globIdxAct(i));
 
                     for (size_t j0 = 0; j0 < eltBdryFcts.size(); j0++)
                     {
-                        const index_t j = eltBdryFcts[j0];
-                        const index_t jj = mapper.global_to_bindex(globIdxAct(j));
+                        const unsigned j = eltBdryFcts[j0];
+                        const unsigned jj = mapper.global_to_bindex(globIdxAct(j));
 
                         // Use the "element-wise index" to get the needed
                         // function value.

@@ -109,7 +109,9 @@ public:
     /// @brief Default constructor.  Note: Derived constructors (except for
     /// the default) should assign \a m_basis to a valid pointer
     gsGeometry() :m_basis( NULL ), m_id(0)
-    { }
+    {
+        gsInfo << "gsGeometry<T>::gsGeometry()\n";
+    }
 
     /// @brief Constructor by a basis and coefficient vector
     ///
@@ -300,7 +302,7 @@ public:
     short_t targetDim() const { return this->coefDim(); }
 
     /// Dimension \em n of the coefficients (control points)
-    short_t coefDim() const { return static_cast<short_t>(m_coefs.cols()); }
+    short_t coefDim() const { return m_coefs.cols(); }
 
     /// Dimension \em n of the absent physical space
     short_t geoDim() const { return this->coefDim(); }
@@ -488,7 +490,7 @@ public:
      * The syntax of \em boxes depends on the implementation in the
      * underlying basis. See gsBasis::refineElements_withCoefs() for details.
      */
-    void refineElements( std::vector<index_t> const & boxes )
+    void refineElements( std::vector<unsigned> const & boxes )
     {
         this->basis().refineElements_withCoefs(this->m_coefs, boxes );
     }

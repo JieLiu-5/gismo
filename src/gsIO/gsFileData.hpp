@@ -1862,6 +1862,10 @@ template<class T> inline
 typename gsFileData<T>::gsXmlNode *
 gsFileData<T>::getFirstNode(const std::string & name, const std::string & type) const
 {
+    gsInfo << "gsFileData::getFirstNode()\n";
+    
+//     gsInfo << "    name: " << name << ", type: " << type << "\n";
+    
     gsXmlNode * root = data->first_node("xml");
     if ( ! root )
     {
@@ -1871,7 +1875,10 @@ gsFileData<T>::getFirstNode(const std::string & name, const std::string & type) 
     }
 
     if ( type == "" )
+    {
+//         gsInfo << "    return type is gsXmlNode" << "\n";
         return root->first_node( name.c_str() );
+    }
     else
     {
         for (gsXmlNode * child = root->first_node( name.c_str() ) ;

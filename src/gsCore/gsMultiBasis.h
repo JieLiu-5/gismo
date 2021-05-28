@@ -55,7 +55,10 @@ public:
 public:
 
     /// Default empty constructor
-    gsMultiBasis() { }
+    gsMultiBasis() 
+    { 
+        gsInfo << "gsMultiBasis<T>::gsMultiBasis()\n";
+    }
 
     /// \brief Create a multi-basis instance from a gsMultiPatch
     /// \param mpatch used gsMultiPatch
@@ -317,6 +320,8 @@ public:
     /// This calls \a gsBasis::uniformRefine(\a numKnots,\a mul) for all patches
     void uniformRefine(int numKnots = 1, int mul = 1)
     {
+        gsInfo << "gsMultiBasis<T>::uniformRefine()\n";
+        
         for (size_t k = 0; k < m_bases.size(); ++k)
         {
             m_bases[k]->uniformRefine(numKnots,mul);
@@ -377,7 +382,7 @@ public:
     /// on patch \em k.
     ///
     /// See gsHTensorBasis::refineElements() for further documentation.
-    void refineElements(int k, std::vector<index_t> const & boxes)
+    void refineElements(int k, std::vector<unsigned> const & boxes)
     {
         m_bases[k]->refineElements(boxes);
     }
@@ -435,7 +440,7 @@ public:
     typename gsBasis<T>::uPtr componentBasis_withIndices(
         patchComponent pc,
         const gsDofMapper& dm,
-        gsMatrix<index_t>& indices,
+        gsMatrix<unsigned>& indices,
         bool no_lower = true
     ) const;
     
@@ -449,7 +454,7 @@ public:
     std::vector<typename gsBasis<T>::uPtr> componentBasis_withIndices(
         const std::vector<patchComponent>& pc,
         const gsDofMapper& dm,
-        gsMatrix<index_t>& indices,
+        gsMatrix<unsigned>& indices,
         bool no_lower = true
     ) const;
 
@@ -521,10 +526,10 @@ public:
      *
      * Is called by repairInterface(), templated over dimension.
      */
-    template<short_t d>
+    template<int d>
     bool repairInterfaceFindElements( const boundaryInterface & bi,
-                                      std::vector<index_t> & refEltsFirst,
-                                      std::vector<index_t> & refEltsSecond );
+                                      std::vector<unsigned> & refEltsFirst,
+                                      std::vector<unsigned> & refEltsSecond );
 
     /// @brief Elevate the degree of every basis by the given amount. (keeping the smoothness)
     void degreeElevate(short_t const i = 1, short_t const dir = -1)

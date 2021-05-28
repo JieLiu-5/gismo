@@ -63,7 +63,7 @@ template<class T>
 boxSide gsGeometry<T>::sideOf( const gsVector<T> & u,  )
 {
     // get the indices of the coefficients which lie on the boundary
-    gsMatrix<index_t > allBnd = m_basis->allBoundary();
+    gsMatrix<unsigned > allBnd = m_basis->allBoundary();
     gsMatrix<T> bndCoeff(allBnd.rows(), m_coefs.rows());
 
     // extract the indices of the boundary coefficients
@@ -81,7 +81,7 @@ boxSide gsGeometry<T>::sideOf( const gsVector<T> & u,  )
         int contained = 0;
         side.m_index = index;
 
-        gsMatrix<index_t> bnd = m_basis->boundary(side);
+        gsMatrix<unsigned> bnd = m_basis->boundary(side);
 
         for(size_t i = 0; i < interfaceIndicesPatch1.size(); i++)
         {
@@ -105,7 +105,7 @@ template<class T>
 typename gsGeometry<T>::uPtr
 gsGeometry<T>::boundary(boxSide const& s) const
 {
-    gsMatrix<index_t> ind = this->basis().boundary(s); // get indices of the boundary DOF
+    gsMatrix<unsigned> ind = this->basis().boundary(s); // get indices of the boundary DOF
     gsMatrix<T> coeffs (ind.size(), geoDim()); // create matrix for boundary coefficients
 
     for (index_t i=0; i != ind.size(); i++ )
@@ -129,20 +129,11 @@ void gsGeometry<T>::evaluateMesh(gsMesh<T>& mesh) const
 
     // For all vertices of the mesh, push forward the value by the
     // geometry mapping
-    if (1==gDim && 3>pDim) // Plot a graph
-        for (size_t i = 0; i!= mesh.numVertices(); ++i)
-        {
-            eval_into( mesh.vertex(i).topRows(pDim), tmp );
-            mesh.vertex(i).middleRows(pDim, gDim) = tmp;
-        }
-    else // Plot mesh on a mapping
-        for (size_t i = 0; i!= mesh.numVertices(); ++i)
-        {
-            eval_into( mesh.vertex(i).topRows(pDim), tmp );
-            const index_t gd = math::min(3,gDim);
-            mesh.vertex(i).topRows(gd) = tmp.topRows(gd);
-        }
-
+    for (size_t i = 0; i!= mesh.numVertices(); ++i)
+    {
+        eval_into( mesh.vertex(i).topRows(pDim), tmp );
+        mesh.vertex(i).topRows( gDim ) = tmp;
+    }
 }
 template<class T>
 std::vector<gsGeometry<T>* > gsGeometry<T>::uniformSplit(index_t) const
@@ -253,7 +244,7 @@ gsGeometry<T>::hessian(const gsMatrix<T>& u, unsigned coord) const
     static const unsigned d = this->m_basis->dim();
 
     gsMatrix<T> B, DD(d,d), tmp(d,d);
-    gsMatrix<index_t> ind;
+    gsMatrix<unsigned> ind;
 
     // coefficient matrix row k = coef. of basis function k
     const gsMatrix<T>& C = this->m_coefs;
@@ -285,7 +276,7 @@ gsGeometry<T>::hessian(const gsMatrix<T>& u, unsigned coord) const
 
 
 template <typename T>
-void extractRows( const gsMatrix<T> &in, typename gsMatrix<index_t>::constColumn actives, gsMatrix<T> &out)
+void extractRows( const gsMatrix<T> &in, typename gsMatrix<unsigned>::constColumn actives, gsMatrix<T> &out)
 {
     out.resize(actives.rows(), in.cols());
     for (index_t r=0; r<actives.rows();++r)

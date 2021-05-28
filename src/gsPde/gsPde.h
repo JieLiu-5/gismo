@@ -53,7 +53,9 @@ public:
     /// @brief Constructor without given exact solution.
     gsPde(const gsMultiPatch<T> &domain, const gsBoundaryConditions<T> &bc)
         : m_domain(domain), m_boundary_conditions(bc)
-    {}
+    {
+        gsInfo << "gsPde<T>::gsPde(), creating m_domain, m_boundary_conditions and initializing them by the arguments of gsPoissonPde()\n";
+    }
 
     virtual ~gsPde() 
     { }
@@ -144,7 +146,7 @@ public:
      *
     **/
     GISMO_DEPRECATED
-    short_t dim() const
+    int dim() const
     {
         return m_domain.dim();
     }

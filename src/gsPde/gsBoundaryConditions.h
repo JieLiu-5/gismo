@@ -78,8 +78,8 @@ struct boundary_condition
     typedef typename gsFunction<T>::Ptr function_ptr;
 
     boundary_condition( int p, boxSide s, const function_ptr & f_shptr,
-                        const std::string & label, short_t unknown,
-                        short_t unkcomp, bool parametric)
+                        const std::string & label, int unknown,
+                        int unkcomp, bool parametric)
     : ps(p, s),
       m_function(f_shptr),
       m_label(label),
@@ -94,7 +94,7 @@ struct boundary_condition
     }
 
     boundary_condition( int p, boxSide s, const function_ptr & f_shptr,
-                        condition_type::type t, short_t unknown, bool parametric)
+                        condition_type::type t, int unknown, bool parametric)
     : ps(p, s),
       m_function(f_shptr),
       m_type(t),
@@ -141,16 +141,16 @@ struct boundary_condition
     const std::string & ctype() const { return m_label; }
 
     /// Returns the patch to which this boundary condition refers to
-    index_t patch()    const { return ps.patch; }
+    size_t     patch()    const { return ps.patch; }
 
     /// Returns the side to which this boundary condition refers to
     boxSide side()     const { return ps.side(); }
 
     /// Returns the unknown to which this boundary condition refers to
-    short_t     unknown()  const { return m_unknown; }
+    int     unknown()  const { return m_unknown; }
 
     /// Returns the component of the unknown which this boundary condition refers to
-    short_t     unkComponent()  const { return m_unkcomp; }
+    int     unkComponent()  const { return m_unkcomp; }
 
     /// Returns true if the function data for this boundary condition
     /// is defined in parametric coordinates
@@ -167,9 +167,9 @@ struct boundary_condition
 
     std::string m_label;         ///< Description of type of the boundary condition
 
-    short_t m_unknown;               ///< Unknown to which this boundary condition refers to
+    int m_unknown;               ///< Unknown to which this boundary condition refers to
 
-    short_t m_unkcomp;               ///< Component of unknown to which this boundary condition refers to
+    int m_unkcomp;               ///< Component of unknown to which this boundary condition refers to
 
     bool m_parametric;
 };
@@ -180,13 +180,13 @@ struct boundary_condition
 template<class T>
 struct corner_value
 {
-    corner_value(index_t p, boxCorner c, T v, short_t unk = 0)
+    corner_value(int p, boxCorner c, T v, int unk = 0)
         : patch(p), corner(c), value(v), unknown(unk) { }
 
-    index_t patch;     ///< The index of the patch.
+    size_t patch;     ///< The index of the patch.
     boxCorner corner; ///< The corner
     T value;          ///< The value
-    short_t   unknown;    ///< Unknown to which this boundary condition refers to
+    int   unknown;    ///< Unknown to which this boundary condition refers to
 };
 
 /** @brief
@@ -203,7 +203,7 @@ class GISMO_EXPORT gsBoundaryConditions
 
 public:
 
-    typedef typename std::deque<boundary_condition<T> > bcContainer;
+    typedef typename std::deque<boundary_condition<T> > bcContainer;                            // boundary_condition<T> is a class defined above
     typedef typename bcContainer::iterator iterator;
     typedef typename bcContainer::const_iterator const_iterator;
 
@@ -269,7 +269,7 @@ public:
 
     /// Return a reference to boundary conditions of certain type for
     /// unknown \a unk
-    bcRefList get(const std::string & label, const short_t unk = 0) const
+    bcRefList get(const std::string & label, const index_t unk = 0) const
     {
         bcRefList result;
         const const_bciterator it = m_bc.find(label);
@@ -284,7 +284,8 @@ public:
     const bcContainer & dirichletSides() const {return m_bc["Dirichlet"]; }
 
     /// Return a reference to the Neumann sides
-    const bcContainer & neumannSides()   const {return m_bc["Neumann"]; }
+    const bcContainer & neumannSides()   const {return m_bc["Neumann"]; }                           // m_bc is of type bcData, which is an alias of std::map<std::string,bcContainer>, line 219
+                                                                                                    // bcContainer is an alias of std::deque<boundary_condition<T> >, see line 206
 
     /// Return a reference to the Robin sides
     const bcContainer & robinSides()     const {return m_bc["Robin"]; }
@@ -292,7 +293,7 @@ public:
     const cornerContainer & cornerValues() const  {return corner_values;  }
 
     /// Extracts the BC, comming from a certain component.
-    bcContainer reducedContainer(const bcContainer & container, short_t unknown) const
+    bcContainer reducedContainer(const bcContainer & container, index_t unknown) const
     {
         bcContainer red;
         //red.reserve(container.size());
@@ -412,7 +413,7 @@ public:
     { return corner_values.end(); }
 
     void add(int p, boxSide s, const std::string & label,
-             const function_ptr & f_ptr, short_t unknown = 0,
+             const function_ptr & f_ptr, int unknown = 0,
              int comp = -1, bool parametric = false)
     {
         m_bc[label].push_back(
@@ -420,7 +421,7 @@ public:
     }
 
     void add(int p, boxSide s, const std::string & label,
-             gsFunction<T> * f, short_t unknown = 0,
+             gsFunction<T> * f, int unknown = 0,
              int comp = -1, bool parametric = false)
     {
         function_ptr f_ptr = memory::make_shared_not_owned(f);
@@ -429,7 +430,7 @@ public:
     }
 
     void add(int p, boxSide s, const std::string & label,
-             const gsFunction<T> & f, short_t unknown = 0,
+             const gsFunction<T> & f, int unknown = 0,
              int comp = -1, bool parametric = false)
     {
         function_ptr fun = memory::make_shared(f.clone().release());
@@ -452,14 +453,14 @@ public:
      * is defined in parametric coordinates.
      */
     void addCondition(int p, boxSide s, condition_type::type t,
-                      gsFunction<T> * f, short_t unknown = 0, bool parametric = false)
+                      gsFunction<T> * f, int unknown = 0, bool parametric = false)
     {
         function_ptr fun = memory::make_shared_not_owned(f);
         addCondition(p,s,t,fun,unknown,parametric);
     }
 
     void addCondition(int p, boxSide s, condition_type::type t,
-                      const function_ptr & f_shptr, short_t unknown = 0,
+                      const function_ptr & f_shptr, int unknown = 0,
                       bool parametric = false)
     {
         switch (t)
@@ -479,7 +480,7 @@ public:
     }
 
     void addCondition(int p, boxSide s, condition_type::type t,
-                      const gsFunction<T> & func, short_t unknown = 0,
+                      const gsFunction<T> & func, int unknown = 0,
                       bool parametric = false)
     {
         function_ptr fun(func.clone().release());
@@ -487,31 +488,31 @@ public:
     }
 
     void addCondition( boxSide s, condition_type::type t,
-                       gsFunction<T> * f, short_t unknown = 0, bool parametric = false)
+                       gsFunction<T> * f, int unknown = 0, bool parametric = false)
     {
         // for single-patch only
         addCondition(0,s,t,f,unknown,parametric);
     }
 
     void addCondition(const patchSide& ps, condition_type::type t,
-                      gsFunction<T> * f, short_t unknown = 0, bool parametric = false)
+                      gsFunction<T> * f, int unknown = 0, bool parametric = false)
     {
         addCondition(ps.patch, ps.side(), t, f, unknown,parametric);
     }
 
     void addCondition(const patchSide& ps, condition_type::type t,
-                      const function_ptr & f_shptr, short_t unknown = 0, bool parametric = false)
+                      const function_ptr & f_shptr, int unknown = 0, bool parametric = false)
     {
         addCondition(ps.patch, ps.side(), t, f_shptr, unknown,parametric);
     }
 
     void addCondition(const patchSide& ps, condition_type::type t,
-                      const gsFunction<T> & func, short_t unknown = 0, bool parametric = false)
+                      const gsFunction<T> & func, int unknown = 0, bool parametric = false)
     {
         addCondition(ps.patch, ps.side(), t, func, unknown,parametric);
     }
 
-    void addCornerValue(boxCorner c, T value, int p = 0, short_t unknown = 0)
+    void addCornerValue(boxCorner c, T value, int p = 0, int unknown = 0)
     {
         corner_values.push_back( corner_value<T>(p,c,value,unknown) );
     }
@@ -519,6 +520,8 @@ public:
     /// Prints the object as a string.
     std::ostream & print(std::ostream &os) const
     {
+//         gsInfo << "gsBoundaryConditions<T>::print()" << "\n";
+        
         //os << "gsBoundaryConditions :\n";
         for (typename bcData::const_iterator it = m_bc.begin(); it != m_bc.end(); ++it)
             os << "* "<<std::setw(13)<<std::left<<it->first<<" : "<< it->second.size() <<"\n";
@@ -602,7 +605,7 @@ public:
      * @param[in] np the patch index
      * @param[out] result the new set of boundary conditions
      */
-    void getConditionsForPatch(const index_t np, gsBoundaryConditions& result) const
+    void getConditionsForPatch(const size_t np, gsBoundaryConditions& result) const
     {
         result.clear();
         bcContainer bc_all = allConditions(); //inefficient, but fewer code
@@ -653,7 +656,7 @@ public:
     { return m_periodicPairs.end(); }
 
     /// Add a periodic condition between side \a s1 of box \a p1 and side \a s2 of box \a p2.
-    void addPeriodic(int p1, boxSide s1, int p2, boxSide s2, short_t dim)
+    void addPeriodic(int p1, boxSide s1, int p2, boxSide s2, int dim)
     { m_periodicPairs.push_back( boundaryInterface(patchSide(p1,s1), patchSide(p2,s2), dim) ); }
 
     /// Removes all periodic pairs
@@ -664,7 +667,7 @@ public:
     { m_trMatrix = trMatrix; }
 
     /// Set identity transformation matrix for the periodic pairs of sides
-    void setIdentityMatrix(short_t dim)
+    void setIdentityMatrix(int dim)
     { m_trMatrix = gsMatrix<T>::Identity(dim, dim); }
 
     /// Get transformation matrix for the periodic pairs of sides

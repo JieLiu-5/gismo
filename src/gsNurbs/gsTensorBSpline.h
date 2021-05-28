@@ -62,10 +62,10 @@ public:
     typedef memory::unique_ptr< gsTensorBSpline > uPtr;
 
     /// Associated Boundary basis type
-    typedef typename gsBSplineTraits<static_cast<short_t>(d-1),T>::Geometry BoundaryGeometryType;
+    typedef typename gsBSplineTraits<d-1,T>::Geometry BoundaryGeometryType;
 
     /// Associated Boundary basis type
-    typedef typename gsBSplineTraits<static_cast<short_t>(d-1),T>::Basis BoundaryBasisType;
+    typedef typename gsBSplineTraits<d-1,T>::Basis BoundaryBasisType;
 
 public:
 
@@ -86,7 +86,9 @@ public:
     /// Construct B-Spline by basis functions and coefficient matrix
     gsTensorBSpline( const Basis & basis, gsMatrix<T> coefs )
     : Base( basis, give(coefs) )
-    { }
+    { 
+        gsInfo << "gsTensorBSpline<d,T>::gsTensorBSpline( const Basis & basis, gsMatrix<T> coefs )\n";
+    }
         
     /// Construct 2D tensor B-Spline by knot vectors, degrees and
     /// coefficient matrix (copying coefficient matrix)
@@ -95,6 +97,9 @@ public:
                      gsMatrix<T> tcoefs,
                      typename util::enable_if<d==2,U>::type * = NULL)
     {
+        
+        gsInfo << "gsTensorBSpline<d,T>::gsTensorBSpline( KnotVectorType KV1, gsKnotVector<U> KV2, gsMatrix<T> tcoefs)\n";
+        
         GISMO_ASSERT(d==2, "Wrong dimension: tried to make a "
                      << d<<"D tensor B-spline using 2 knot-vectors.");
 

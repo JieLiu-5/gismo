@@ -178,6 +178,9 @@ public:
     template<class Object>
     inline void getId( const int & id, Object& result)  const
     {
+        
+        gsInfo << "gsFileData<T>::getId()" << id << "\n";
+        
         memory::unique_ptr<Object> obj = getId<Object>(id);
         result = give(*obj);
     }
@@ -295,6 +298,8 @@ public:
     template<class Object>
     inline memory::unique_ptr<Object> getFirst() const
     {
+        
+        gsInfo << "gsFileData<T>::getFirst()" << "\n";
         gsXmlNode* node = getFirstNode(internal::gsXml<Object>::tag(),
                                        internal::gsXml<Object>::type() );
         if ( !node )
@@ -302,9 +307,13 @@ public:
             gsWarn<<"gsFileData: getFirst: Didn't find any "<<
                 internal::gsXml<Object>::type()<<" "<<
                 internal::gsXml<Object>::tag() <<". Error.\n";
+//             gsInfo << "return type: memory::unique_ptr<Object>()" << "\n";
             return memory::unique_ptr<Object>();
         }
+        
+//         gsInfo << "make_unique()\n";
         return memory::make_unique( internal::gsXml<Object>::get(node) );// Using gsXmlUtils
+        
     }
 
     /**

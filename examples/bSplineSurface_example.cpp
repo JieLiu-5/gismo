@@ -23,9 +23,9 @@ const double PI = 3.14159265;
 
 int main(int argc, char* argv[])
 {
-    index_t n = 5;
-    index_t m = 5;
-    index_t degree = 3;
+    index_t n = 2;
+    index_t m = 2;
+    index_t degree = 1;
     std::string output("");
 
     gsCmdLine cmd("Tutorial on gsTensorBSpline class.");
@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
     try { cmd.getValues(argc,argv); } catch (int rv) { return rv; }
 
     // Adjust values to the minimum required
-    degree = math::max( (index_t)(0), degree    );
+    degree = math::max(index_t(0), degree    );
     n      = math::max(n, degree + 1);
     m      = math::max(m, degree + 1);
 
@@ -48,14 +48,41 @@ int main(int argc, char* argv[])
               << "----------------------\n\n";
 
     // 1. construction of a knot vector for each direction
-    gsKnotVector<> kv1(0, 1, n - degree - 1, degree + 1);
-    gsKnotVector<> kv2(0, 1, m - degree - 1, degree + 1);
+    gsKnotVector<> kv1(0, 1, n - degree - 1, degree + 1);         // default values for mult_interior and degree are used in this function
+    
+    gsInfo << "\n";
+    
+    gsKnotVector<> kv2(0, 1, m - degree - 1, degree + 2);
 
+    gsInfo << "\n";
+    
+    gsInfo << "content of kv1:\n";
+    gsInfo << kv1;
+    gsInfo << "\n";
+    
+    gsInfo << "content of kv2:\n";
+    gsInfo << kv2;
+    gsInfo << "\n";
+    gsInfo << "\n";
+    
     // 2. construction of a basis
-    gsTensorBSplineBasis<2, real_t> basis(kv1, kv2);
+    gsTensorBSplineBasis<2, real_t> basis(kv1, kv2);                    // changing gsTensorBSplineBasis.h consumes cpu time
+                                                                        // the constructor of gsTensorBSplineBasis<T> leads us to study gsBSplineBasis<T>, apr 23
+                                                                        // change in gsBSplineBasis.h also costs much cpu time
+    
+    gsInfo << "content of the object of gsTensorBSplineBasis:\n";
+    gsInfo << basis;
+    gsInfo << "\n";    
+    
 
     // 3. construction of a coefficients
-    gsMatrix<> greville = basis.anchors();
+    gsMatrix<> greville = basis.anchors();                              // see gsTensorBasis<d,T>::anchors_into()
+    
+    gsInfo << "anchor points of basis:\n";
+    gsInfo << greville;
+    gsInfo << "\n";    
+    
+    
     gsMatrix<> coefs (greville.cols(), 3);
 
     for (index_t col = 0; col != greville.cols(); col++)
@@ -65,12 +92,17 @@ int main(int argc, char* argv[])
 
         coefs(col, 0) = x;
         coefs(col, 1) = y;
-        coefs(col, 2) = math::sin(x * 2 * PI) * math::sin(y * 2 * PI);
+        coefs(col, 2) = x+y;        //math::sin(x * 2 * PI) * math::sin(y * 2 * PI);
     }
+    
+    gsInfo << "coefs of basis:\n";
+    gsInfo << coefs;
+    gsInfo << "\n";        
 
     // 4. putting basis and coefficients toghether
     gsTensorBSpline<2, real_t>  surface(basis, coefs);
 
+    gsTensorBSpline<2, real_t>  my_surface(kv1, kv2, coefs);
 
     // 5. saving surface, basis and control net to a file
     if (output != "")

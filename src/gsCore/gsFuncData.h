@@ -50,9 +50,9 @@ public:
 
 public:
     mutable unsigned flags;
-    index_t      patchId; // move to mapdata
+    int      patchId; // move to mapdata
 
-    gsMatrix<index_t> actives;
+    gsMatrix<unsigned> actives;
 
     /// Stores values and derivatives
     /// values[0] for base
@@ -76,7 +76,10 @@ public:
      */
     explicit gsFuncData(unsigned flags = 0, int patch = 0)
     : flags(flags), patchId(patch)
-    { }
+    { 
+//        gsInfo << "\n";
+//        gsInfo << "gsFuncData<T>::gsFuncData()\n";                                // not recommended, for being invoked many times
+    }
 
 public:
 
@@ -127,7 +130,7 @@ public:
 
 public:
 
-    inline const gsMatrix<index_t> & allActives() const
+    inline const gsMatrix<unsigned> & allActives() const
     {
         GISMO_ASSERT(flags & NEED_ACTIVE,
                    "actives are not computed unless the NEED_ACTIVE flag is set.");
@@ -143,7 +146,7 @@ public:
         return values.front();
     }
 
-    inline gsMatrix<index_t>::constColumn active(index_t point = 0) const
+    inline gsMatrix<unsigned>::constColumn active(index_t point = 0) const
     {
         GISMO_ASSERT(flags & NEED_ACTIVE,
                    "actives are not computed unless the NEED_ACTIVE flag is set.");
@@ -233,10 +236,13 @@ public:
      */
     explicit gsMapData(unsigned flags = 0)
     : Base(flags), side(boundary::none)
-    { }
+    { 
+//         gsInfo << "\n";
+        gsInfo << "gsMapData<T>::gsMapData()\n";
+    }
 
 public:
-    using Base::flags;
+    using Base::flags;                                  // using the flags defined in gsFuncData
     using Base::values;
     using Base::dim;
 

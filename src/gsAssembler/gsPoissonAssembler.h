@@ -41,7 +41,9 @@ public:
 public:
 
     gsPoissonAssembler()
-    { }
+    {
+        gsInfo << "gsPoissonAssembler constructor default" << "\n";
+    }
 
     /** @brief Main Constructor of the assembler object.
 
@@ -67,10 +69,43 @@ public:
                         dirichlet::strategy           dirStrategy,
                         iFace::strategy               intStrategy = iFace::glue)
     {
-        m_options.setInt("DirichletStrategy", dirStrategy);
-        m_options.setInt("InterfaceStrategy", intStrategy);
-
-        Base::initialize(pde, bases, m_options);
+        gsInfo << "gsPoissonAssembler<T>::gsPoissonAssembler()\n"
+               << "  using members upon creating an object of class gsAssembler<T>\n"
+               << "  receiving arguments pde, bases, dirStrategy and intStrategy\n" ;
+        
+        gsInfo << "\n";
+        
+        
+        gsInfo << "adjusting m_options by dirStrategy and intStrategy\n";
+        gsInfo << "\n";
+        
+        m_options.setInt("DirichletStrategy", dirStrategy);     // m_options is a member in gsAssembler.h, Jan 23 2020      
+                                                                // id of DirichletStrategy is 11 for dirichlet::elimination, and 12 for dirichlet::nitsche
+        
+        
+        
+        m_options.setInt("InterfaceStrategy", intStrategy);     // we initialize them here because arguments dirStrategy and intStrategy belong to gsPoissonAssembler<T>
+        
+//         gsInfo << "m_options reads:\n";
+//         m_options.print(gsInfo);
+//         gsInfo << "\n";
+        
+        
+        Base::initialize(pde, bases, m_options);                // Base is an alias of gsAssembler<T>, this page upper          
+                                                                // m_options is assigned to itselft
+        
+        gsInfo << "\n";
+        gsInfo << "\n";
+        
+        gsInfo << "  m_system.matrix():\n"
+               << m_system.matrix()
+               << "\n";
+        gsInfo << "  m_system.rhs():\n"
+               << m_system.rhs()
+               << "\n";          
+        
+//         gsInfo << "gsPoissonAssembler::gsPoissonAssembler() finished\n";
+        
     }
 
     /** @brief
@@ -92,10 +127,16 @@ public:
                         dirichlet::strategy           dirStrategy = dirichlet::elimination,
                         iFace::strategy               intStrategy = iFace::glue)
     {
+        
+//         gsInfo << "gsPoissonAssembler constructor 1" << "\n";
+        
         m_options.setInt("DirichletStrategy", dirStrategy);
         m_options.setInt("InterfaceStrategy", intStrategy);
 
         typename gsPde<T>::Ptr pde( new gsPoissonPde<T>(patches,bconditions,rhs) );
+        
+        
+        
         Base::initialize(pde, basis, m_options);
     }
 

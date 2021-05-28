@@ -57,6 +57,8 @@ int main(int argc, char *argv[])
         choice = 4;
     else if (get_geo)
         choice = 5;
+    
+    gsInfo << "choice: " << choice << "\n";
 
     gsFileData<>  filedata(fn);
 
@@ -243,7 +245,7 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    gsFileManager::open("gsview.pvd");
+//     gsFileManager::open("gsview.pvd");
 
     return EXIT_SUCCESS;
 }

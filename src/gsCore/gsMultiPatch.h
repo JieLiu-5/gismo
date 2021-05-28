@@ -35,7 +35,7 @@ class gsMultiPatch : public gsBoxTopology, public gsFunctionSet<T>
 
 public:
     typedef gsBoxTopology    BaseA;
-    typedef gsFunctionSet<T> BaseB;
+    typedef gsFunctionSet<T> BaseB; 
 
     /// Shared pointer for gsMultiPatch
     typedef memory::shared_ptr< gsMultiPatch > Ptr;
@@ -50,7 +50,10 @@ public:
 public:
 
     /// Default empty constructor
-    gsMultiPatch() { }
+    gsMultiPatch()
+    {
+        gsInfo << "gsMultiPatch<T>::gsMultiPatch() 0\n";
+    }
 
     /// Copy constructor (makes deep copy)
     gsMultiPatch( const gsMultiPatch& other );
@@ -201,7 +204,7 @@ public:
     }
 
     ///\brief Permutes the patches according to \a perm
-    void permute(const std::vector<short_t> & perm);
+    void permute(const std::vector<int> & perm);
 
     ///\brief Return the basis of the \a i-th patch.
     gsBasis<T> & basis( size_t i ) const;

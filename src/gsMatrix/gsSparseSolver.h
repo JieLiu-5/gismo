@@ -89,7 +89,10 @@ public:
     typedef gsMatrix<T>       VectorT;
 
 public:
-    virtual ~gsSparseSolver(){}
+    virtual ~gsSparseSolver()
+    {
+//         gsInfo << "~gsSparseSolver<T>\n";
+    }
 
     virtual gsSparseSolver& compute (const MatrixT &matrix) = 0;
 

@@ -199,7 +199,7 @@ public:
     }
 //*/
     static std::string type ();
-    static Object * get      (gsXmlNode * node);
+    static Object * get      (gsXmlNode * node);                        // not clear where it is defined, may 27, 2020
     static void     get_into (gsXmlNode * node, Object & result);
     static gsXmlNode * put   (const Object & obj, gsXmlTree & data);
 
